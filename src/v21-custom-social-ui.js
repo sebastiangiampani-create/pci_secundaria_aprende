@@ -5,9 +5,10 @@
   const style=document.createElement('style');
   style.textContent=`
     #compositionPalette{display:none!important}
+    .rowlabel.has-social-choice{display:block}
     .social-choice{margin-top:7px;padding-top:7px;border-top:1px solid rgba(18,57,92,.15)}
-    .social-choice-title{font-size:.48rem;line-height:1.25;color:var(--muted);margin-bottom:5px}
-    .social-choice-chip{display:block;width:100%;margin:4px 0;padding:6px;border:1px dashed var(--mint-dark);border-radius:8px;background:#fff;color:var(--ink);font-size:.48rem;font-weight:900;line-height:1.2;cursor:grab;touch-action:none;user-select:none}
+    .social-choice-title{font-size:.55rem;line-height:1.25;color:var(--muted);margin-bottom:5px}
+    .social-choice-chip{display:block;width:100%;margin:4px 0;padding:7px;border:1px dashed var(--mint-dark);border-radius:8px;background:#fff;color:var(--ink);font-size:.58rem;font-weight:900;line-height:1.3;cursor:grab;touch-action:none;user-select:none}
     .social-choice-chip.active{background:var(--mint-soft);border-style:solid;color:var(--mint-dark)}
     .social-cell-note{display:block;margin:5px 0 4px;padding:5px 6px;border-radius:7px;background:var(--mint-soft);color:var(--mint-dark);font-size:.46rem;font-weight:900;line-height:1.2}
     .social-cell-note small{display:block;color:var(--muted);font-size:.43rem;font-weight:700;margin-top:2px}
@@ -30,7 +31,7 @@
       return;
     }
     current().socialOption=option;current().valid=false;save();renderOffer();
-    toast(option==='A'?'Sociales Nivel 3: 1 laboratorio por cuatrimestre con las 4 materias.':'Sociales Nivel 3: 2 laboratorios por cuatrimestre, agrupados 2 + 2.');
+    toast(option==='A'?'Opción: 10 laboratorios de Sociales en toda la secundaria. En 3.º: 1 por cuatrimestre, con las 4 materias juntas.':'Opción: 12 laboratorios de Sociales en toda la secundaria. En 3.º: 2 por cuatrimestre, agrupados 2 + 2.');
   }
 
   // Una materia agregada por la escuela puede articular con cualquier espacio curricular
@@ -68,7 +69,7 @@
     el.onpointerdown=e=>{
       if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
       e.preventDefault();
-      const ghost=document.createElement('div');ghost.className='drag-ghost';ghost.textContent=option==='A'?'Sociales N3 · 4 juntas':'Sociales N3 · 2 + 2';document.body.appendChild(ghost);
+      const ghost=document.createElement('div');ghost.className='drag-ghost';ghost.textContent=option==='A'?'Opción: 10 laboratorios':'Opción: 12 laboratorios';document.body.appendChild(ghost);
       const move=ev=>{ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px'};
       const cleanup=()=>{ghost.remove();el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',cancel)};
       const up=ev=>{const target=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('[data-slot]');cleanup();if(target&&['socialA-c5','socialA-c6'].includes(target.dataset.slot))chooseSocial(option);else block('Soltá la opción sobre Ciencias Sociales de C5 o C6.')};
@@ -83,11 +84,12 @@
     const baseRow=c5?.closest('.grid');
     const rowLabel=baseRow?.querySelector('.rowlabel');
     if(rowLabel){
+      rowLabel.classList.add('has-social-choice');
       let choice=rowLabel.querySelector('.social-choice');
       if(!choice){choice=document.createElement('div');choice.className='social-choice';rowLabel.appendChild(choice)}
-      choice.innerHTML='<div class="social-choice-title">Nivel 3 · definición institucional. Arrastrá una opción a C5 o C6:</div>'+
-        '<div class="social-choice-chip '+(opt==='A'?'active':'')+'" draggable="true" data-choice="A">⠿ 4 materias juntas</div>'+
-        '<div class="social-choice-chip '+(opt==='B'?'active':'')+'" draggable="true" data-choice="B">⠿ 2 laboratorios · 2 + 2</div>';
+      choice.innerHTML='<div class="social-choice-title">Total de Sociales en toda la secundaria:</div>'+
+        '<div class="social-choice-chip '+(opt==='A'?'active':'')+'" draggable="true" data-choice="A" title="En 3.º: 1 laboratorio por cuatrimestre, con las 4 materias juntas. Arrastrá a C5 o C6.">⠿ Opción: 10 laboratorios</div>'+
+        '<div class="social-choice-chip '+(opt==='B'?'active':'')+'" draggable="true" data-choice="B" title="En 3.º: 2 laboratorios por cuatrimestre, agrupados 2 + 2. Arrastrá a C5 o C6.">⠿ Opción: 12 laboratorios</div>';
       choice.querySelectorAll('[data-choice]').forEach(el=>{
         const option=el.dataset.choice;
         el.ondragstart=e=>{e.stopPropagation();e.dataTransfer.setData('text/plain','social-option:'+option)};
@@ -124,7 +126,7 @@
   if(modal){
     const rules=[...modal.querySelectorAll('.rule')];
     const socialRule=rules.find(r=>r.textContent.includes('Ciencias Sociales de 3.º:'));
-    if(socialRule)socialRule.innerHTML='<strong>Ciencias Sociales de 3.º:</strong> la Opción A muestra un laboratorio en C5 y otro en C6, ambos con las cuatro materias y la misma composición. La Opción B muestra dos laboratorios en C5 y dos en C6, agrupados 2+2 y con las mismas parejas en ambos cuatrimestres. La opción se cambia por drag & drop dentro de la propia fila de Ciencias Sociales.';
+    if(socialRule)socialRule.innerHTML='<strong>Ciencias Sociales de 3.º:</strong> Opción: 10 laboratorios (A) y Opción: 12 laboratorios (B) indican el total de Sociales en toda la secundaria. Con 10, en 3.º hay un laboratorio en C5 y otro en C6, ambos con las cuatro materias. Con 12, en 3.º hay dos laboratorios en C5 y dos en C6, agrupados 2+2 y con las mismas parejas en ambos cuatrimestres. La opción se cambia por drag & drop dentro de la propia fila de Ciencias Sociales.';
     const customRule=document.createElement('div');customRule.className='rule';customRule.innerHTML='<strong>Materias agregadas por la escuela:</strong> pueden articular con cualquier espacio curricular del mismo año —troncal, laboratorio, taller, Formación Orientada, Proyecto u Otros formatos— respetando las reglas y mínimos prescriptos del espacio de destino.';modal.querySelector('.modal-box')?.appendChild(customRule);
   }
 })();
