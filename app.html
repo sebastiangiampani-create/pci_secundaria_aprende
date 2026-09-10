@@ -11,20 +11,20 @@
 <script>
 (async()=>{
   try{
-    const response=await fetch('app-core.html?v=20260910-15',{cache:'no-store'});
+    const response=await fetch('app-core.html?v=20260910-16',{cache:'no-store'});
     if(!response.ok) throw new Error('No se pudo cargar la aplicación base.');
     let html=await response.text();
 
-    // Estado nuevo para no arrastrar configuraciones FO de las pruebas anteriores.
-    html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';","const STORAGE='pci-sa-v2-app-20260910-15';");
+    // Estado nuevo para no arrastrar configuraciones de pruebas anteriores.
+    html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';","const STORAGE='pci-sa-v2-app-20260910-16';");
 
     html=html.replace(
       '<span>Artes: C1,C2,C3,C4,C7,C8</span>',
-      '<span>Artes: C1,C2,C3,C4,C7,C8</span><span>FO: N3 y N4 = 1 laboratorio + 1 taller; N5 = 2 laboratorios + 2 talleres</span>'
+      '<span>Artes: C1,C2,C3,C4,C7,C8</span><span>FO: N3 y N4 = 1 laboratorio + 1 taller; N5 = 2 laboratorios + 2 talleres</span><span>Proyecto de Vinculación: anual en Nivel 5</span>'
     );
     html=html.replace(
       '<div class="rule"><strong>Formación Orientada:</strong> se construye dentro del PCI específico de esa orientación. Las reglas generales operan igual en todos los PCI.</div>',
-      '<div class="rule"><strong>Formación Orientada:</strong> Nivel 3: 1 laboratorio + 1 taller entre C5/C6. Nivel 4: 1 laboratorio + 1 taller entre C7/C8. Nivel 5: C9 tiene 1 laboratorio + 1 taller y C10 tiene 1 laboratorio + 1 taller; por eso Nivel 5 totaliza 2 laboratorios + 2 talleres.</div><div class="rule"><strong>Tope de laboratorios:</strong> ningún laboratorio puede superar las 9 horas cátedra. La carga horaria se usa como dato interno de validación y no se muestra en la bolsa.</div>'
+      '<div class="rule"><strong>Formación Orientada:</strong> Nivel 3: 1 laboratorio + 1 taller entre C5/C6. Nivel 4: 1 laboratorio + 1 taller entre C7/C8. Nivel 5: C9 tiene 1 laboratorio + 1 taller y C10 tiene 1 laboratorio + 1 taller; por eso Nivel 5 totaliza 2 laboratorios + 2 talleres.</div><div class="rule"><strong>Proyecto de Vinculación:</strong> es un único espacio anual de Nivel 5. Atraviesa C9 y C10 como las materias troncales anuales; no se divide en dos proyectos cuatrimestrales.</div><div class="rule"><strong>Tope de laboratorios:</strong> ningún laboratorio puede superar las 9 horas cátedra. La carga horaria se usa como dato interno de validación y no se muestra en la bolsa.</div>'
     );
 
     const patch=`
@@ -60,7 +60,7 @@
       {k:'foN4',l:'Formación Orientada · Nivel 4',a:t=>t===7||t===8},
       {k:'foLab5',l:'FO · Laboratorios · Nivel 5',a:t=>t===9||t===10},
       {k:'foTaller5',l:'FO · Talleres · Nivel 5',a:t=>t===9||t===10},
-      {k:'proyecto',l:'Proyecto de Vinculación',a:t=>t===9||t===10}
+      {k:'proyecto',l:'Proyecto de Vinculación',annualLevel:5}
     ];
   };
 
@@ -77,6 +77,11 @@
 
   const baseValidTarget=validTarget;
   validTarget=function(slot,s){
+    if(slot==='proyecto-n5'){
+      if(s.year!==5)return[false,'El Proyecto de Vinculación corresponde al Nivel 5.'];
+      if(s.origin!=='FO')return[false,'El Proyecto de Vinculación recibe materializaciones de Formación Orientada de 5.º.'];
+      return[true,''];
+    }
     let match=slot.match(/^foN([34])-c(\\d+)$/);
     if(match){
       const level=Number(match[1]),term=Number(match[2]);
@@ -93,6 +98,48 @@
       return[true,''];
     }
     return baseValidTarget(slot,s);
+  };
+
+  renderMatrix=function(){
+    let h='<div class="grid levels"><div></div>';
+    for(let y=1;y<=5;y++)h+='<div class="level">Nivel '+y+'</div>';
+    h+='</div><div class="grid"><div class="term">Espacio</div>';
+    for(let t=1;t<=10;t++)h+='<div class="term">C'+t+'</div>';
+    h+='</div>';
+    for(const r of rowDefs()){
+      h+='<div class="grid"><div class="rowlabel">'+esc(r.l)+'</div>';
+      if(r.annual){
+        for(let y=1;y<=5;y++){
+          const slot=r.k+'-n'+y;
+          h+='<div class="cell annual"><div class="drop" data-slot="'+slot+'"><strong>C'+(y*2-1)+'+C'+(y*2)+'</strong>'+placed(slot)+'</div></div>';
+        }
+      }else if(r.annualLevel){
+        for(let y=1;y<=5;y++){
+          if(y===r.annualLevel){
+            const slot=r.k+'-n'+y;
+            h+='<div class="cell annual"><div class="drop" data-slot="'+slot+'"><strong>Anual · C'+(y*2-1)+'+C'+(y*2)+'</strong>'+placed(slot)+'</div></div>';
+          }else{
+            h+='<div class="cell inactive">—</div><div class="cell inactive">—</div>';
+          }
+        }
+      }else{
+        for(let t=1;t<=10;t++){
+          if(r.a(t)){
+            const slot=r.k+'-c'+t;
+            h+='<div class="cell"><div class="drop" data-slot="'+slot+'"><strong>'+label(r.k,t)+'</strong>'+placed(slot)+'</div></div>';
+          }else h+='<div class="cell inactive">—</div>';
+        }
+      }
+      h+='</div>';
+    }
+    $('matrix').innerHTML=h;
+    $('matrix').querySelectorAll('.drop').forEach(z=>{
+      z.ondragover=e=>{e.preventDefault();z.classList.add('ready')};
+      z.ondragleave=()=>z.classList.remove('ready');
+      z.ondrop=e=>{e.preventDefault();z.classList.remove('ready');assign(z.dataset.slot,e.dataTransfer.getData('text/plain')||picked)};
+      z.onclick=e=>{if(e.target.closest('[data-rm]'))return;if(picked)assign(z.dataset.slot,picked)};
+    });
+    $('matrix').querySelectorAll('[data-rm]').forEach(b=>b.onclick=e=>{e.stopPropagation();removeOne(b.dataset.slot,b.dataset.rm)});
   };
 
   function socialAt(slot){
@@ -168,7 +215,7 @@
     box.innerHTML=[3,4].map(level=>{
       const[a,b]=foTerms(level),labFirst=order[level]!=='taller-first';
       return '<button type="button" class="btn small soft" data-fo-order="'+level+'">Nivel '+level+': '+(labFirst?'Lab C'+a+' · Taller C'+b:'Taller C'+a+' · Lab C'+b)+' ↔</button>';
-    }).join('')+'<span class="status">Nivel 5: Lab + Taller en C9 y Lab + Taller en C10</span>';
+    }).join('')+'<span class="status">Nivel 5: Lab + Taller en C9 y Lab + Taller en C10</span><span class="status">Proyecto de Vinculación: anual C9+C10</span>';
     box.querySelectorAll('[data-fo-order]').forEach(btn=>btn.onclick=()=>{
       const level=Number(btn.dataset.foOrder),[a,b]=foTerms(level),key='foN'+level,p=ensure(state.active).placements;
       const tmp=p[key+'-c'+a]||[];p[key+'-c'+a]=p[key+'-c'+b]||[];p[key+'-c'+b]=tmp;
