@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "modelo_institucional": {
     "unidad_trabajo": "pci_por_escuela_y_orientacion",
     "escuela_madre_puede_tener_varios_pci": true,
@@ -63,10 +63,29 @@
   },
   "cargas_horarias": {"son_decision_de_fase_1":false,"visibles_en_banco_de_materias":false,"editables_por_usuario":false,"uso":"metadato_interno_para_validaciones"},
   "laboratorios": {"max_horas_catedra":9},
-  "sociales_3": {
-    "materias_fg":["Historia","Geografía","FEC","Economía"],
-    "fo_independiente":{"fg_agrupamientos_validos":[[4],[2,2]]},
-    "fo_articulado":{"materias_fg_en_laboratorio_fo":1,"fg_restantes_en_un_solo_laboratorio":3}
+  "composicion_laboratorios_nivel_3": {
+    "ambito": "formacion_general_y_formacion_orientada",
+    "no_es_regla_exclusiva_de_ciencias_sociales": true,
+    "materias_fg_naturales": ["Biología","Físico-Química"],
+    "materias_fg_sociales": ["Historia","Geografía","Formación Ética y Ciudadana","Economía"],
+    "opciones_estructurales": {
+      "tres_laboratorios_independientes": {
+        "naturales": ["Biología","Físico-Química"],
+        "sociales": ["Historia","Geografía","Formación Ética y Ciudadana","Economía"],
+        "orientacion": "materializacion_fo_3"
+      },
+      "cuatro_laboratorios_con_desdoblamiento_social": {
+        "naturales": ["Biología","Físico-Química"],
+        "sociales": "dos_agrupamientos_2_mas_2",
+        "orientacion": "materializacion_fo_3"
+      },
+      "tres_laboratorios_con_articulacion_fg_fo": {
+        "naturales": ["Biología","Físico-Química"],
+        "sociales": "tres_materias_fg_juntas",
+        "orientacion": "materializacion_fo_3_mas_una_materia_fg_social"
+      }
+    },
+    "continuidad": "la_conformacion_elegida_se_replica_entre_c5_y_c6"
   },
   "electividad": {
     "solo_fase":2,
