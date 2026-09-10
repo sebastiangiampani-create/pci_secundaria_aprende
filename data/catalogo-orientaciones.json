@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "descripcion": "Catálogo de orientaciones y fuente curricular base para PCI Secundaria Aprende V2",
+  "orientaciones": [
+    {"id":"ciencias_naturales","nombre":"Ciencias Naturales","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_Ciencias_Naturales(1).pdf","priorizados":true},
+    {"id":"matematica_fisica","nombre":"Matemática y Física","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_Matematica_Fisica(1).pdf","priorizados":true},
+    {"id":"energia_sustentabilidad","nombre":"Energía y Sustentabilidad","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_ENERGIA(1).pdf","priorizados":true},
+    {"id":"economia_administracion","nombre":"Economía y Administración","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_Economia_Administracion(2).pdf","priorizados":true},
+    {"id":"educacion_fisica","nombre":"Educación Física","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_Educacion_Fisica(1).pdf","priorizados":true},
+    {"id":"comunicacion","nombre":"Comunicación","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_COMUNICACION(1).pdf","priorizados":true},
+    {"id":"literatura","nombre":"Literatura","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_LITERATURA(1).pdf","priorizados":true},
+    {"id":"turismo","nombre":"Turismo","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_TURISMO.pdf","priorizados":true},
+    {"id":"lenguas","nombre":"Lenguas","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_LENGUAS(1).pdf","priorizados":true},
+    {"id":"informatica","nombre":"Informática","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_INFORMATICA.pdf","priorizados":true},
+    {"id":"educacion","nombre":"Educación","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_EDUCACION(1).pdf","priorizados":true},
+    {"id":"ciencias_sociales_humanidades","nombre":"Ciencias Sociales y Humanidades","fuente_tipo":"contenidos_priorizados_2025","archivo_fuente":"2025_NS_CP_Ciencias_Sociales(1).pdf","priorizados":true},
+    {
+      "id":"arte",
+      "nombre":"Arte",
+      "fuente_tipo":"contenidos_priorizados_2025",
+      "archivo_fuente":"2025_NS_CP_ARTES.pdf",
+      "priorizados":true,
+      "variantes":[
+        {"id":"artes_visuales","nombre":"Arte - Artes Visuales"},
+        {"id":"musica","nombre":"Arte - Música"},
+        {"id":"teatro","nombre":"Arte - Teatro"}
+      ]
+    },
+    {
+      "id":"agro_ambiente",
+      "nombre":"Agro y Ambiente",
+      "fuente_tipo":"diseno_curricular_jurisdiccional",
+      "archivo_fuente":"NES-CO-agro-y-ambiente_w.pdf",
+      "anio_fuente":2015,
+      "priorizados":false,
+      "salvedad":"No se han realizado contenidos priorizados para esta orientación. Se utiliza como fuente el Diseño Curricular Jurisdiccional vigente."
+    }
+  ]
+}

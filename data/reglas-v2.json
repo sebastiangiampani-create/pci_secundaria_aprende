@@ -1,0 +1,60 @@
+{
+  "version": 2,
+  "fases": {
+    "fase_1": {
+      "nombre": "Mapa curricular / composición",
+      "permite": ["materias_materializaciones","agrupamientos","articulaciones_fg_fo","cargas_horarias","docentes","drag_drop"],
+      "prohibe": ["contenidos","objetivos","contexto","practica_producto_eje","sinopsis","electividad","planes"]
+    },
+    "fase_2": {
+      "nombre": "Construcción curricular",
+      "hereda_estructura_fase_1": true,
+      "permite": ["nombre","objetivos","contenidos_priorizados","contenidos_profundizacion","contexto","practica_producto_eje","sinopsis","electividad","planes","drag_drop"]
+    }
+  },
+  "transversal": {
+    "drag_drop": true,
+    "imprimir_cada_espacio": true,
+    "exportar_pdf_cada_espacio": true,
+    "contenido_priorizado_reutilizable": true,
+    "profundizacion_opcional": true,
+    "profundizacion_disponible_en_planes": true
+  },
+  "formacion_general": {
+    "lengua_literatura": {"tipo":"troncal_anual","cantidad":5},
+    "matematica": {"tipo":"troncal_anual","cantidad":5},
+    "lenguas_adicionales": {"tipo":"troncal_anual","cantidad":5},
+    "ciencias_naturales": {"tipo":"laboratorio","cantidad":10},
+    "ciencias_sociales": {"tipo":"laboratorio","cantidades_validas":[10,12],"cantidad_11_invalida":true},
+    "artes": {"tipo":"taller","cantidad":6},
+    "tecnologias": {"tipo":"taller","cantidad":10},
+    "educacion_fisica": {"tipo":"taller","cantidad":10}
+  },
+  "formacion_orientada": {
+    "por_orientacion": {
+      "laboratorios":4,
+      "talleres":4,
+      "distribucion": {
+        "3": {"laboratorios":1,"talleres":1},
+        "4": {"laboratorios":1,"talleres":1},
+        "5": {"laboratorios":2,"talleres":2}
+      },
+      "proyecto_vinculacion": {"requerido":true,"reglas_pendientes_de_definicion":true}
+    }
+  },
+  "laboratorios": {"max_horas_catedra":9},
+  "sociales_3": {
+    "materias_fg":["Historia","Geografía","FEC","Economía"],
+    "fo_independiente": {"fg_agrupamientos_validos":[[4],[2,2]]},
+    "fo_articulado": {"materias_fg_en_laboratorio_fo":1,"fg_restantes_en_un_solo_laboratorio":3}
+  },
+  "electividad": {
+    "solo_fase":2,
+    "requiere_mellizo_completo":true,
+    "si_mellizo_incompleto":"obligatorio",
+    "compartido":["objetivos","contenidos_priorizados"],
+    "propio_por_alternativa":["nombre","contexto_o_practica","sinopsis","planes","contenidos_profundizacion"],
+    "profundizacion_puede_diferir":true,
+    "profundizacion_obligatoria":false
+  }
+}
