@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "modelo_institucional": {
     "unidad_trabajo": "pci_por_escuela_y_orientacion",
     "escuela_madre_puede_tener_varios_pci": true,
@@ -55,18 +55,18 @@
   },
   "formacion_orientada": {
     "por_orientacion": {
-      "laboratorios": 3,
-      "talleres": 3,
+      "laboratorios": 4,
+      "talleres": 4,
       "distribucion": {
-        "3": {"laboratorios":1,"talleres":1},
-        "4": {"laboratorios":1,"talleres":1},
-        "5": {"laboratorios":1,"talleres":1}
+        "3": {"laboratorios":1,"talleres":1,"cuatrimestres":[5,6],"regla":"un_formato_por_cuatrimestre"},
+        "4": {"laboratorios":1,"talleres":1,"cuatrimestres":[7,8],"regla":"un_formato_por_cuatrimestre"},
+        "5": {"laboratorios":2,"talleres":2,"cuatrimestres":[9,10],"por_cuatrimestre":{"9":{"laboratorios":1,"talleres":1},"10":{"laboratorios":1,"talleres":1}}}
       },
       "proyecto_vinculacion": {"requerido":true,"reglas_pendientes_de_definicion":true}
     }
   },
   "cargas_horarias": {"son_decision_de_fase_1":false,"visibles_en_banco_de_materias":false,"editables_por_usuario":false,"uso":"metadato_interno_para_validaciones"},
-  "laboratorios": {"max_horas_catedra":9},
+  "laboratorios": {"max_horas_catedra":9,"aplica_a":["FG","FO","articulados_FG_FO"]},
   "composicion_laboratorios_nivel_3": {
     "ambito": "formacion_general_y_formacion_orientada",
     "no_es_regla_exclusiva_de_ciencias_sociales": true,
