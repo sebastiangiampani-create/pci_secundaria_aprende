@@ -3,8 +3,8 @@
   "fases": {
     "fase_1": {
       "nombre": "Mapa curricular / composición",
-      "permite": ["materias_materializaciones","agrupamientos","articulaciones_fg_fo","cargas_horarias","docentes","drag_drop"],
-      "prohibe": ["contenidos","objetivos","contexto","practica_producto_eje","sinopsis","electividad","planes"]
+      "permite": ["materias_materializaciones","agrupamientos","articulaciones_fg_fo","docentes","drag_drop"],
+      "prohibe": ["contenidos","objetivos","contexto","practica_producto_eje","sinopsis","electividad","planes","edicion_carga_horaria"]
     },
     "fase_2": {
       "nombre": "Construcción curricular",
@@ -41,6 +41,12 @@
       },
       "proyecto_vinculacion": {"requerido":true,"reglas_pendientes_de_definicion":true}
     }
+  },
+  "cargas_horarias": {
+    "son_decision_de_fase_1": false,
+    "visibles_en_banco_de_materias": false,
+    "editables_por_usuario": false,
+    "uso": "metadato_interno_para_validaciones"
   },
   "laboratorios": {"max_horas_catedra":9},
   "sociales_3": {
