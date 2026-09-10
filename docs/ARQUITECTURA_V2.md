@@ -100,14 +100,16 @@ La validación debe producirse durante la composición, antes de aceptar un drop
 Por cada orientación:
 - 4 laboratorios FO;
 - 4 talleres FO;
-- Proyecto de Vinculación.
+- 1 Proyecto de Vinculación anual en Nivel 5.
 
 Distribución de laboratorios y talleres:
 - 3.º: 1 laboratorio + 1 taller;
 - 4.º: 1 laboratorio + 1 taller;
 - 5.º: 2 laboratorios + 2 talleres.
 
-Las reglas particulares del Proyecto de Vinculación se completarán solo con definición explícita; no se deben inventar.
+El **Proyecto de Vinculación** es un único espacio anual de Nivel 5. En la matriz ocupa C9 + C10 como una troncal anual y no se divide en dos espacios cuatrimestrales.
+
+Las demás reglas curriculares particulares del Proyecto de Vinculación se completarán solo con definición explícita; no se deben inventar.
 
 ## 7. Regla especial — Ciencias Sociales de 3.º
 
