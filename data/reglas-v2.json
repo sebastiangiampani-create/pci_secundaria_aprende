@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "modelo_institucional": {
     "unidad_trabajo": "pci_por_escuela_y_orientacion",
     "escuela_madre_puede_tener_varios_pci": true,
@@ -12,7 +12,13 @@
       "nombre": "Mapa de la Oferta",
       "objetivo": "construir_y_validar_la_estructura_del_pci",
       "permite": ["materias_materializaciones","agrupamientos","articulaciones_fg_fo","ubicaciones_c1_c10","docentes","drag_drop"],
-      "prohibe": ["contenidos","objetivos","contexto","practica_producto_eje","sinopsis","electividad","planes","edicion_carga_horaria"]
+      "prohibe": ["contenidos","objetivos","contexto","practica_producto_eje","sinopsis","electividad","planes","edicion_carga_horaria"],
+      "interfaz_composicion": {
+        "armado_directo_en_matriz": true,
+        "selector_previo_de_tipo_de_agrupamiento": false,
+        "validacion_durante_el_armado": true,
+        "reglas_visibles_en_popup_general": true
+      }
     },
     "fase_2": {
       "nombre": "Mapa Propuesta Curricular",
@@ -36,7 +42,8 @@
     "exportar_pdf_cada_espacio": true,
     "contenido_priorizado_reutilizable": true,
     "profundizacion_opcional": true,
-    "profundizacion_disponible_en_planes": true
+    "profundizacion_disponible_en_planes": true,
+    "materias_anuales_reutilizables_en_ambos_cuatrimestres_del_nivel": true
   },
   "mapa": {
     "niveles": 5,
@@ -50,7 +57,7 @@
     "ciencias_naturales": {"tipo":"laboratorio","cantidad":10},
     "ciencias_sociales": {"tipo":"laboratorio","cantidades_validas":[10,12],"cantidad_11_invalida":true,"desdoblamiento_solo_nivel_3":true},
     "artes": {"tipo":"taller","cantidad":6,"cuatrimestres":[1,2,3,4,7,8]},
-    "tecnologias": {"tipo":"taller","cantidad":8,"cuatrimestres":[1,2,3,4,5,6,7,8]},
+    "tecnologias": {"tipo":"taller","cantidad":10,"cuatrimestres":[1,2,3,4,5,6,7,8,9,10]},
     "educacion_fisica": {"tipo":"taller","cantidad":10,"cuatrimestres":[1,2,3,4,5,6,7,8,9,10]}
   },
   "formacion_orientada": {
@@ -73,8 +80,16 @@
       }
     }
   },
-  "cargas_horarias": {"son_decision_de_fase_1":false,"visibles_en_banco_de_materias":false,"editables_por_usuario":false,"uso":"metadato_interno_para_validaciones"},
-  "laboratorios": {"max_horas_catedra":9,"aplica_a":["FG","FO","articulados_FG_FO"]},
+  "cargas_horarias": {
+    "son_decision_de_fase_1": false,
+    "visibles_en_banco_de_materias": false,
+    "editables_por_usuario": false,
+    "uso": "metadato_interno_para_validaciones"
+  },
+  "laboratorios": {
+    "max_horas_catedra": 9,
+    "aplica_a": ["FG","FO","articulados_FG_FO"]
+  },
   "composicion_laboratorios_nivel_3": {
     "ambito": "formacion_general_y_formacion_orientada",
     "no_es_regla_exclusiva_de_ciencias_sociales": true,
@@ -100,12 +115,12 @@
     "continuidad": "la_conformacion_elegida_se_replica_entre_c5_y_c6"
   },
   "electividad": {
-    "solo_fase":2,
-    "requiere_mellizo_completo":true,
-    "si_mellizo_incompleto":"obligatorio",
-    "compartido":["objetivos","contenidos_priorizados"],
-    "propio_por_alternativa":["nombre","contexto_o_practica","sinopsis","planes","contenidos_profundizacion"],
-    "profundizacion_puede_diferir":true,
-    "profundizacion_obligatoria":false
+    "solo_fase": 2,
+    "requiere_mellizo_completo": true,
+    "si_mellizo_incompleto": "obligatorio",
+    "compartido": ["objetivos","contenidos_priorizados"],
+    "propio_por_alternativa": ["nombre","contexto_o_practica","sinopsis","planes","contenidos_profundizacion"],
+    "profundizacion_puede_diferir": true,
+    "profundizacion_obligatoria": false
   }
 }
