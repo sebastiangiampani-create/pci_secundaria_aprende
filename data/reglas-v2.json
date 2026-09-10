@@ -1,48 +1,18 @@
 {
-  "version": 3,
+  "version": 4,
   "modelo_institucional": {
     "unidad_trabajo": "pci_por_escuela_y_orientacion",
     "escuela_madre_puede_tener_varios_pci": true,
     "cada_orientacion_crea_un_pci_independiente": true,
-    "estado_independiente_por_pci": [
-      "formacion_general",
-      "formacion_orientada",
-      "agrupamientos",
-      "articulaciones",
-      "ubicaciones_c1_c10",
-      "docentes",
-      "desarrollo_curricular",
-      "electividades",
-      "planes"
-    ],
-    "compartido_entre_pci": [
-      "motor_de_reglas_secundaria_aprende",
-      "catalogos_oficiales",
-      "catalogo_institucional_de_docentes"
-    ]
+    "estado_independiente_por_pci": ["formacion_general","formacion_orientada","agrupamientos","articulaciones","ubicaciones_c1_c10","docentes","desarrollo_curricular","electividades","planes"],
+    "compartido_entre_pci": ["motor_de_reglas_secundaria_aprende","catalogos_oficiales","catalogo_institucional_de_docentes"]
   },
   "fases": {
     "fase_1": {
       "nombre": "Mapa de la Oferta",
       "objetivo": "construir_y_validar_la_estructura_del_pci",
-      "permite": [
-        "materias_materializaciones",
-        "agrupamientos",
-        "articulaciones_fg_fo",
-        "ubicaciones_c1_c10",
-        "docentes",
-        "drag_drop"
-      ],
-      "prohibe": [
-        "contenidos",
-        "objetivos",
-        "contexto",
-        "practica_producto_eje",
-        "sinopsis",
-        "electividad",
-        "planes",
-        "edicion_carga_horaria"
-      ]
+      "permite": ["materias_materializaciones","agrupamientos","articulaciones_fg_fo","ubicaciones_c1_c10","docentes","drag_drop"],
+      "prohibe": ["contenidos","objetivos","contexto","practica_producto_eje","sinopsis","electividad","planes","edicion_carga_horaria"]
     },
     "fase_2": {
       "nombre": "Mapa Propuesta Curricular",
@@ -50,18 +20,7 @@
       "requiere_fase_1_validada": true,
       "hereda_estructura_fase_1": true,
       "reabre_agrupamientos_fase_1": false,
-      "permite": [
-        "nombre",
-        "objetivos",
-        "contenidos_priorizados",
-        "contenidos_profundizacion",
-        "contexto",
-        "practica_producto_eje",
-        "sinopsis",
-        "electividad",
-        "planes",
-        "drag_drop"
-      ]
+      "permite": ["nombre","objetivos","contenidos_priorizados","contenidos_profundizacion","contexto","practica_producto_eje","sinopsis","electividad","planes","drag_drop"]
     }
   },
   "navegacion": {
@@ -82,47 +41,32 @@
   "mapa": {
     "niveles": 5,
     "cuatrimestres": 10,
-    "nivel_por_cuatrimestre": {
-      "1": [1, 2],
-      "2": [3, 4],
-      "3": [5, 6],
-      "4": [7, 8],
-      "5": [9, 10]
-    }
+    "nivel_por_cuatrimestre": {"1":[1,2],"2":[3,4],"3":[5,6],"4":[7,8],"5":[9,10]}
   },
   "formacion_general": {
     "lengua_literatura": {"tipo":"troncal_anual","cantidad":5},
     "matematica": {"tipo":"troncal_anual","cantidad":5},
     "lenguas_adicionales": {"tipo":"troncal_anual","cantidad":5},
     "ciencias_naturales": {"tipo":"laboratorio","cantidad":10},
-    "ciencias_sociales": {"tipo":"laboratorio","cantidades_validas":[10,12],"cantidad_11_invalida":true},
-    "artes": {"tipo":"taller","cantidad":6},
-    "tecnologias": {"tipo":"taller","cantidad":10},
-    "educacion_fisica": {"tipo":"taller","cantidad":10}
+    "ciencias_sociales": {"tipo":"laboratorio","cantidades_validas":[10,12],"cantidad_11_invalida":true,"desdoblamiento_solo_nivel_3":true},
+    "artes": {"tipo":"taller","cantidad":6,"cuatrimestres":[1,2,3,4,7,8]},
+    "tecnologias": {"tipo":"taller","cantidad":8,"cuatrimestres":[1,2,3,4,5,6,7,8]},
+    "educacion_fisica": {"tipo":"taller","cantidad":10,"cuatrimestres":[1,2,3,4,5,6,7,8,9,10]}
   },
   "formacion_orientada": {
     "por_orientacion": {
       "laboratorios":4,
       "talleres":4,
-      "distribucion": {
-        "3": {"laboratorios":1,"talleres":1},
-        "4": {"laboratorios":1,"talleres":1},
-        "5": {"laboratorios":2,"talleres":2}
-      },
+      "distribucion": {"3":{"laboratorios":1,"talleres":1},"4":{"laboratorios":1,"talleres":1},"5":{"laboratorios":2,"talleres":2}},
       "proyecto_vinculacion": {"requerido":true,"reglas_pendientes_de_definicion":true}
     }
   },
-  "cargas_horarias": {
-    "son_decision_de_fase_1": false,
-    "visibles_en_banco_de_materias": false,
-    "editables_por_usuario": false,
-    "uso": "metadato_interno_para_validaciones"
-  },
+  "cargas_horarias": {"son_decision_de_fase_1":false,"visibles_en_banco_de_materias":false,"editables_por_usuario":false,"uso":"metadato_interno_para_validaciones"},
   "laboratorios": {"max_horas_catedra":9},
   "sociales_3": {
     "materias_fg":["Historia","Geografía","FEC","Economía"],
-    "fo_independiente": {"fg_agrupamientos_validos":[[4],[2,2]]},
-    "fo_articulado": {"materias_fg_en_laboratorio_fo":1,"fg_restantes_en_un_solo_laboratorio":3}
+    "fo_independiente":{"fg_agrupamientos_validos":[[4],[2,2]]},
+    "fo_articulado":{"materias_fg_en_laboratorio_fo":1,"fg_restantes_en_un_solo_laboratorio":3}
   },
   "electividad": {
     "solo_fase":2,
