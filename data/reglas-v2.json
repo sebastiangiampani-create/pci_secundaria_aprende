@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 11,
   "modelo_institucional": {
     "unidad_trabajo": "pci_por_escuela_y_orientacion",
     "escuela_madre_puede_tener_varios_pci": true,
@@ -151,6 +151,27 @@
     }
   },
   "formacion_orientada": {
+    "presentacion_inicial_mapa": {
+      "es_modelo_valido_no_obligatorio": true,
+      "nivel_3": {
+        "C5": "laboratorio",
+        "C6": "taller"
+      },
+      "nivel_4": {
+        "C7": "laboratorio",
+        "C8": "taller"
+      },
+      "nivel_5": {
+        "C9": ["laboratorio", "taller"],
+        "C10": ["laboratorio", "taller"]
+      },
+      "formatos_reordenables_por_drag_drop_dentro_del_mismo_nivel": true,
+      "al_reordenar_debe_conservar": {
+        "nivel_3": {"laboratorios": 1, "talleres": 1},
+        "nivel_4": {"laboratorios": 1, "talleres": 1},
+        "nivel_5": {"laboratorios": 2, "talleres": 2}
+      }
+    },
     "laboratorios": {
       "cantidad": 4,
       "distribucion": {
