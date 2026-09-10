@@ -1,16 +1,75 @@
 {
-  "version": 2,
+  "version": 3,
+  "modelo_institucional": {
+    "unidad_trabajo": "pci_por_escuela_y_orientacion",
+    "escuela_madre_puede_tener_varios_pci": true,
+    "cada_orientacion_crea_un_pci_independiente": true,
+    "estado_independiente_por_pci": [
+      "formacion_general",
+      "formacion_orientada",
+      "agrupamientos",
+      "articulaciones",
+      "ubicaciones_c1_c10",
+      "docentes",
+      "desarrollo_curricular",
+      "electividades",
+      "planes"
+    ],
+    "compartido_entre_pci": [
+      "motor_de_reglas_secundaria_aprende",
+      "catalogos_oficiales",
+      "catalogo_institucional_de_docentes"
+    ]
+  },
   "fases": {
     "fase_1": {
-      "nombre": "Mapa curricular / composición",
-      "permite": ["materias_materializaciones","agrupamientos","articulaciones_fg_fo","docentes","drag_drop"],
-      "prohibe": ["contenidos","objetivos","contexto","practica_producto_eje","sinopsis","electividad","planes","edicion_carga_horaria"]
+      "nombre": "Mapa de la Oferta",
+      "objetivo": "construir_y_validar_la_estructura_del_pci",
+      "permite": [
+        "materias_materializaciones",
+        "agrupamientos",
+        "articulaciones_fg_fo",
+        "ubicaciones_c1_c10",
+        "docentes",
+        "drag_drop"
+      ],
+      "prohibe": [
+        "contenidos",
+        "objetivos",
+        "contexto",
+        "practica_producto_eje",
+        "sinopsis",
+        "electividad",
+        "planes",
+        "edicion_carga_horaria"
+      ]
     },
     "fase_2": {
-      "nombre": "Construcción curricular",
+      "nombre": "Mapa Propuesta Curricular",
+      "objetivo": "desarrollar_curricularmente_la_estructura_validada",
+      "requiere_fase_1_validada": true,
       "hereda_estructura_fase_1": true,
-      "permite": ["nombre","objetivos","contenidos_priorizados","contenidos_profundizacion","contexto","practica_producto_eje","sinopsis","electividad","planes","drag_drop"]
+      "reabre_agrupamientos_fase_1": false,
+      "permite": [
+        "nombre",
+        "objetivos",
+        "contenidos_priorizados",
+        "contenidos_profundizacion",
+        "contexto",
+        "practica_producto_eje",
+        "sinopsis",
+        "electividad",
+        "planes",
+        "drag_drop"
+      ]
     }
+  },
+  "navegacion": {
+    "mostrar_aviso_previo_fase_2": true,
+    "texto_aviso": "Para ingresar al desarrollo de la Propuesta Curricular, primero deberá construir y validar su Mapa de la Oferta.",
+    "mostrar_reglas_composicion_en_popup": true,
+    "mostrar_impresion_pci": true,
+    "documento_pci_es_progresivo": true
   },
   "transversal": {
     "drag_drop": true,
@@ -19,6 +78,17 @@
     "contenido_priorizado_reutilizable": true,
     "profundizacion_opcional": true,
     "profundizacion_disponible_en_planes": true
+  },
+  "mapa": {
+    "niveles": 5,
+    "cuatrimestres": 10,
+    "nivel_por_cuatrimestre": {
+      "1": [1, 2],
+      "2": [3, 4],
+      "3": [5, 6],
+      "4": [7, 8],
+      "5": [9, 10]
+    }
   },
   "formacion_general": {
     "lengua_literatura": {"tipo":"troncal_anual","cantidad":5},
