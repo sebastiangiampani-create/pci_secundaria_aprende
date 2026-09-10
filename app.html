@@ -11,80 +11,156 @@
 <script>
 (async()=>{
   try{
-    const response=await fetch('app-core.html?v=20260910-13',{cache:'no-store'});
+    const response=await fetch('app-core.html?v=20260910-14',{cache:'no-store'});
     if(!response.ok) throw new Error('No se pudo cargar la aplicación base.');
     let html=await response.text();
 
-    // Formación Orientada: en cada Nivel 3, 4 y 5 hay UN laboratorio y UN taller.
-    // Cada formato es cuatrimestral: uno se ubica en el primer cuatrimestre del nivel
-    // y el otro en el segundo. La escuela decide el orden.
-    html=html.replace("{k:'foLab4',l:'FO · Laboratorio 4',a:t=>t===9||t===10},",'');
-    html=html.replace("{k:'foTaller4',l:'FO · Taller 4',a:t=>t===9||t===10},",'');
-    html=html.replace("{k:'foLab1',l:'FO · Laboratorio 1',a:t=>t===5||t===6}","{k:'foLab1',l:'FO · Laboratorio · Nivel 3',a:t=>t===5||t===6}");
-    html=html.replace("{k:'foTaller1',l:'FO · Taller 1',a:t=>t===5||t===6}","{k:'foTaller1',l:'FO · Taller · Nivel 3',a:t=>t===5||t===6}");
-    html=html.replace("{k:'foLab2',l:'FO · Laboratorio 2',a:t=>t===7||t===8}","{k:'foLab2',l:'FO · Laboratorio · Nivel 4',a:t=>t===7||t===8}");
-    html=html.replace("{k:'foTaller2',l:'FO · Taller 2',a:t=>t===7||t===8}","{k:'foTaller2',l:'FO · Taller · Nivel 4',a:t=>t===7||t===8}");
-    html=html.replace("{k:'foLab3',l:'FO · Laboratorio 3',a:t=>t===9||t===10}","{k:'foLab3',l:'FO · Laboratorio · Nivel 5',a:t=>t===9||t===10}");
-    html=html.replace("{k:'foTaller3',l:'FO · Taller 3',a:t=>t===9||t===10}","{k:'foTaller3',l:'FO · Taller · Nivel 5',a:t=>t===9||t===10}");
+    // Estado nuevo para no arrastrar la grilla FO anterior.
+    html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';","const STORAGE='pci-sa-v2-app-20260910-14';");
 
+    // Texto visible de ayuda.
     html=html.replace(
       '<span>Artes: C1,C2,C3,C4,C7,C8</span>',
-      '<span>Artes: C1,C2,C3,C4,C7,C8</span><span>FO: Nivel 3, 4 y 5 = 1 laboratorio + 1 taller; uno en cada cuatrimestre del nivel</span>'
+      '<span>Artes: C1,C2,C3,C4,C7,C8</span><span>FO: un cuatrimestre Laboratorio y el otro Taller en cada Nivel 3, 4 y 5</span>'
     );
     html=html.replace(
       '<div class="rule"><strong>Formación Orientada:</strong> se construye dentro del PCI específico de esa orientación. Las reglas generales operan igual en todos los PCI.</div>',
-      '<div class="rule"><strong>Formación Orientada:</strong> Nivel 3 tiene 1 laboratorio y 1 taller entre C5/C6; Nivel 4 tiene 1 laboratorio y 1 taller entre C7/C8; Nivel 5 tiene 1 laboratorio y 1 taller entre C9/C10. Son cuatrimestrales: laboratorio y taller deben quedar en cuatrimestres distintos del mismo nivel y la escuela decide el orden.</div>'
+      '<div class="rule"><strong>Formación Orientada:</strong> en Nivel 3, 4 y 5 hay solamente dos espacios por nivel: uno en cada cuatrimestre. Uno es Laboratorio y el otro Taller. La escuela puede invertir el orden.</div>'
     );
 
-    // Nuevo estado local para no arrastrar configuraciones de la maqueta anterior.
-    html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';","const STORAGE='pci-sa-v2-app-20260910-13';");
-
-    // Regla operativa para los tres niveles orientados.
     const patch=`
 <script>
 (function(){
-  const baseValidTarget=validTarget;
-  const pairs={
-    foLab1:{other:'foTaller1',terms:[5,6]},foTaller1:{other:'foLab1',terms:[5,6]},
-    foLab2:{other:'foTaller2',terms:[7,8]},foTaller2:{other:'foLab2',terms:[7,8]},
-    foLab3:{other:'foTaller3',terms:[9,10]},foTaller3:{other:'foLab3',terms:[9,10]}
+  function foOrders(){
+    const m=ensure(state.active);
+    m.foOrder=m.foOrder||{3:'lab-first',4:'lab-first',5:'lab-first'};
+    return m.foOrder;
+  }
+  function foTerms(level){return level===3?[5,6]:level===4?[7,8]:[9,10]}
+  function foType(level,term){
+    const [a,b]=foTerms(level),labFirst=foOrders()[level]!=='taller-first';
+    if(term===a)return labFirst?'lab':'taller';
+    if(term===b)return labFirst?'taller':'lab';
+    return null;
+  }
+
+  // Una sola fila FO por nivel: dos celdas, una por cuatrimestre.
+  rowDefs=function(){
+    const mode=ensure(state.active).mode;
+    return[
+      {k:'lengua',l:'Lengua y Literatura',annual:true},
+      {k:'matematica',l:'Matemática',annual:true},
+      {k:'adicional',l:'Lengua Adicional',annual:true},
+      {k:'naturales',l:'Laboratorios · Ciencias Naturales',a:t=>true},
+      {k:'socialA',l:mode==='split'?'Ciencias Sociales · Laboratorio A':'Laboratorios · Ciencias Sociales',a:t=>true},
+      {k:'socialB',l:'Ciencias Sociales · Laboratorio B',a:t=>mode==='split'&&(t===5||t===6)},
+      {k:'artes',l:'Talleres · Artes',a:t=>ARTS.has(t)},
+      {k:'tecnologias',l:'Talleres · Tecnologías',a:t=>true},
+      {k:'ef',l:'Talleres · Educación Física',a:t=>true},
+      {k:'otros',l:'Otros formatos pedagógicos',a:t=>true},
+      {k:'foN3',l:'Formación Orientada · Nivel 3',a:t=>t===5||t===6},
+      {k:'foN4',l:'Formación Orientada · Nivel 4',a:t=>t===7||t===8},
+      {k:'foN5',l:'Formación Orientada · Nivel 5',a:t=>t===9||t===10},
+      {k:'proyecto',l:'Proyecto de Vinculación',a:t=>t===9||t===10}
+    ];
   };
+
+  const baseLabel=label;
+  label=function(k,t){
+    if(/^foN[345]$/.test(k)){
+      const level=Number(k.slice(-1));
+      return (foType(level,t)==='lab'?'Laboratorio FO':'Taller FO')+' · C'+t;
+    }
+    return baseLabel(k,t);
+  };
+
+  const baseValidTarget=validTarget;
   validTarget=function(slot,s){
-    const match=slot.match(/^(fo(?:Lab|Taller)[123])-c(\\d+)$/);
+    const match=slot.match(/^foN([345])-c(\\d+)$/);
     if(match){
-      const key=match[1],term=Number(match[2]),cfg=pairs[key];
-      if(cfg){
-        const otherTerm=cfg.terms.find(x=>x!==term);
-        const p=ensure(state.active).placements;
-        if((p[key+'-c'+otherTerm]||[]).length>0)
-          return[false,'Este formato FO ya fue ubicado en C'+otherTerm+'. En este nivel se usa una sola vez.'];
-        if((p[cfg.other+'-c'+term]||[]).length>0)
-          return[false,'En este nivel el laboratorio y el taller FO deben quedar en cuatrimestres distintos. Usá C'+otherTerm+'.'];
-      }
+      const level=Number(match[1]),term=Number(match[2]);
+      if(s.year!==level)return[false,'Esta materia corresponde a '+s.year+'.º y este espacio pertenece al Nivel '+level+'.'];
+      const c=classify(s);
+      if(level===3 && ensure(state.active).mode==='articulated' && c==='social')return[true,''];
+      if(s.origin==='FO')return[true,''];
+      return[false,(foType(level,term)==='lab'?'El Laboratorio FO':'El Taller FO')+' recibe materializaciones de Formación Orientada'+(level===3?' y, en la opción articulada, una materia de Ciencias Sociales.':'.')];
     }
     return baseValidTarget(slot,s);
   };
 
-  const baseRenderMatrix=renderMatrix;
-  renderMatrix=function(){
-    baseRenderMatrix();
-    const p=ensure(state.active).placements;
-    Object.entries(pairs).forEach(([key,cfg])=>{
-      const [a,b]=cfg.terms;
-      const aUsed=(p[key+'-c'+a]||[]).length>0;
-      const bUsed=(p[key+'-c'+b]||[]).length>0;
-      const otherA=(p[cfg.other+'-c'+a]||[]).length>0;
-      const otherB=(p[cfg.other+'-c'+b]||[]).length>0;
-      [[a,bUsed||otherA],[b,aUsed||otherB]].forEach(([term,blocked])=>{
-        const el=document.querySelector('[data-slot="'+key+'-c'+term+'"]');
-        if(el&&blocked){el.style.opacity='.35';el.style.background='#f4f6f8';el.title='No disponible: el otro formato de este nivel ocupa este cuatrimestre o este formato ya fue ubicado en el otro.';}
-      });
-    });
+  function socialAt(slot){return new Set((ensure(state.active).placements[slot]||[]).map(byId).filter(Boolean).filter(s=>SOCIAL.has(s.name)&&s.year===3).map(s=>s.name))}
+  function fo3Count(slot){return(ensure(state.active).placements[slot]||[]).map(byId).filter(Boolean).filter(s=>s.origin==='FO'&&s.year===3).length}
+
+  validateSocial=function(){
+    const m=ensure(state.active),A5=socialAt('socialA-c5'),A6=socialAt('socialA-c6'),B5=socialAt('socialB-c5'),B6=socialAt('socialB-c6'),F5=socialAt('foN3-c5'),F6=socialAt('foN3-c6'),all=new Set(['Historia','Geografía','Formación Ética y Ciudadana','Economía']);
+    const sameSet=(a,b)=>a.size===b.size&&[...a].every(x=>b.has(x));
+    if(fo3Count('foN3-c5')<1||fo3Count('foN3-c6')<1)return{ok:false,msg:'Nivel 3: ubicá la materialización de la orientación en los dos espacios FO: uno será Laboratorio y el otro Taller.'};
+    if(m.mode==='one'){
+      return sameSet(A5,all)&&sameSet(A6,all)&&F5.size===0&&F6.size===0
+        ?{ok:true,msg:'Nivel 3 válido: Sociales reúne las 4 materias y la FO ocupa un Laboratorio y un Taller, uno por cuatrimestre.'}
+        :{ok:false,msg:'Sociales Nivel 3: ubicá Historia, Geografía, FEC y Economía juntas en C5 y C6. La FO va aparte: un cuatrimestre Laboratorio y el otro Taller.'};
+    }
+    if(m.mode==='split'){
+      const u5=new Set([...A5,...B5]),u6=new Set([...A6,...B6]);
+      const ok=A5.size===2&&B5.size===2&&A6.size===2&&B6.size===2&&sameSet(u5,all)&&sameSet(u6,all)&&sameSet(A5,A6)&&sameSet(B5,B6)&&F5.size===0&&F6.size===0;
+      return ok?{ok:true,msg:'Nivel 3 válido: Sociales 2+2 y FO con un Laboratorio y un Taller, uno por cuatrimestre.'}:{ok:false,msg:'Sociales Nivel 3: armá dos parejas 2+2 y repetí la misma conformación en C5 y C6.'};
+    }
+    const u5=new Set([...A5,...F5]),u6=new Set([...A6,...F6]);
+    const ok=A5.size===3&&A6.size===3&&F5.size===1&&F6.size===1&&sameSet(u5,all)&&sameSet(u6,all)&&sameSet(A5,A6)&&sameSet(F5,F6);
+    return ok?{ok:true,msg:'Nivel 3 válido: 3 materias sociales juntas + 1 articulada con la FO; la misma agrupación pasa por Laboratorio y Taller en los dos cuatrimestres.'}:{ok:false,msg:'Nivel 3 articulado: dejá 3 materias en Sociales y 1 junto con la materialización FO tanto en C5 como en C6. Un cuatrimestre será Laboratorio y el otro Taller.'};
   };
+
+  renderSocial=function(){
+    const m=ensure(state.active);
+    document.querySelectorAll('#socialModes [data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m.mode));
+    const h={
+      one:'La FO de Nivel 3 ocupa exactamente dos celdas: una en C5 y una en C6. Una es Laboratorio y la otra Taller. Sociales queda con sus cuatro materias juntas.',
+      split:'La FO de Nivel 3 sigue siendo un Laboratorio y un Taller, uno por cuatrimestre. Ciencias Sociales se desdobla en dos parejas 2+2.',
+      articulated:'La misma agrupación FO + una materia social aparece en C5 y C6: un cuatrimestre como Laboratorio y el otro como Taller. Las otras tres materias sociales quedan juntas.'
+    };
+    $('socialHelp').textContent=h[m.mode];
+    const A5=[...socialAt('socialA-c5')],B5=[...socialAt('socialB-c5')],F5=[...socialAt('foN3-c5')];
+    $('socialStatus').innerHTML=m.mode==='one'?'<div><strong>Social C5</strong><br>'+(A5.length?esc(A5.join(' + ')):'Todavía vacío')+'</div><div><strong>FO Nivel 3</strong><br>'+label('foN3',5)+' / '+label('foN3',6)+'</div>':m.mode==='split'?'<div><strong>Grupo A · C5</strong><br>'+(A5.length?esc(A5.join(' + ')):'Elegí 2 materias')+'</div><div><strong>Grupo B · C5</strong><br>'+(B5.length?esc(B5.join(' + ')):'Elegí las otras 2')+'</div>':'<div><strong>Sociales FG · C5</strong><br>'+(A5.length?esc(A5.join(' + ')):'Elegí 3 materias')+'</div><div><strong>Articulada con FO · C5</strong><br>'+(F5.length?esc(F5.join(' + ')):'Elegí 1 materia social')+'</div>';
+  };
+
+  copyC5C6=function(){
+    const m=ensure(state.active);
+    for(const base of['socialA','socialB']){const from=base+'-c5',to=base+'-c6';const ids=(m.placements[from]||[]).filter(id=>{const s=byId(id);return s&&SOCIAL.has(s.name)});if(ids.length)m.placements[to]=[...ids]}
+    const foIds=(m.placements['foN3-c5']||[]).filter(id=>{const s=byId(id);return s&&(s.origin==='FO'||SOCIAL.has(s.name))});
+    if(foIds.length)m.placements['foN3-c6']=[...foIds];
+    m.valid=false;save();renderOffer();toast('Se copió la conformación de C5 a C6; el segundo cuatrimestre mantiene el otro formato FO.');
+  };
+
+  function migrateOldFo(){
+    const m=ensure(state.active),p=m.placements;
+    const map={3:[5,6,'foLab1','foTaller1','foN3'],4:[7,8,'foLab2','foTaller2','foN4'],5:[9,10,'foLab3','foTaller3','foN5']};
+    Object.values(map).forEach(([a,b,lab,taller,newKey])=>{
+      if(!p[newKey+'-c'+a])p[newKey+'-c'+a]=[...new Set([...(p[lab+'-c'+a]||[]),...(p[taller+'-c'+a]||[])])];
+      if(!p[newKey+'-c'+b])p[newKey+'-c'+b]=[...new Set([...(p[lab+'-c'+b]||[]),...(p[taller+'-c'+b]||[])])];
+      [lab+'-c'+a,lab+'-c'+b,taller+'-c'+a,taller+'-c'+b].forEach(k=>delete p[k]);
+    });
+  }
+
+  function renderFoOrderControls(){
+    const toolbar=document.querySelector('.matrix-toolbar');if(!toolbar)return;
+    let box=document.getElementById('foOrderControls');
+    if(!box){box=document.createElement('div');box.id='foOrderControls';box.style.cssText='width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px';toolbar.appendChild(box)}
+    const order=foOrders();
+    box.innerHTML=[3,4,5].map(level=>{const[a,b]=foTerms(level),labFirst=order[level]!=='taller-first';return '<button type="button" class="btn small soft" data-fo-order="'+level+'">Nivel '+level+': '+(labFirst?'Lab C'+a+' · Taller C'+b:'Taller C'+a+' · Lab C'+b)+' ↔</button>'}).join('');
+    box.querySelectorAll('[data-fo-order]').forEach(btn=>btn.onclick=()=>{
+      const level=Number(btn.dataset.foOrder),[a,b]=foTerms(level),key='foN'+level,p=ensure(state.active).placements;
+      const temp=p[key+'-c'+a]||[];p[key+'-c'+a]=p[key+'-c'+b]||[];p[key+'-c'+b]=temp;
+      order[level]=order[level]==='taller-first'?'lab-first':'taller-first';
+      ensure(state.active).valid=false;save();renderOffer();toast('Se invirtió el orden de Laboratorio y Taller en Nivel '+level+'.');
+    });
+  }
+
+  const baseRenderOffer=renderOffer;
+  renderOffer=function(){migrateOldFo();baseRenderOffer();renderFoOrderControls()};
 })();
 <\/script>`;
-    html=html.replace('</body>',patch+'\n</body>');
 
+    html=html.replace('</body>',patch+'\n</body>');
     document.open();
     document.write(html);
     document.close();
