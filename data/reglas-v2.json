@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "modelo_institucional": {
     "unidad_trabajo": "pci_por_escuela_y_orientacion",
     "escuela_madre_puede_tener_varios_pci": true,
@@ -55,9 +55,13 @@
   },
   "formacion_orientada": {
     "por_orientacion": {
-      "laboratorios":4,
-      "talleres":4,
-      "distribucion": {"3":{"laboratorios":1,"talleres":1},"4":{"laboratorios":1,"talleres":1},"5":{"laboratorios":2,"talleres":2}},
+      "laboratorios": 3,
+      "talleres": 3,
+      "distribucion": {
+        "3": {"laboratorios":1,"talleres":1},
+        "4": {"laboratorios":1,"talleres":1},
+        "5": {"laboratorios":1,"talleres":1}
+      },
       "proyecto_vinculacion": {"requerido":true,"reglas_pendientes_de_definicion":true}
     }
   },
