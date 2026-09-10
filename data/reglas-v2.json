@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "modelo_institucional": {
     "unidad_trabajo": "pci_por_escuela_y_orientacion",
     "escuela_madre_puede_tener_varios_pci": true,
@@ -62,7 +62,15 @@
         "4": {"laboratorios":1,"talleres":1,"cuatrimestres":[7,8],"regla":"un_formato_por_cuatrimestre"},
         "5": {"laboratorios":2,"talleres":2,"cuatrimestres":[9,10],"por_cuatrimestre":{"9":{"laboratorios":1,"talleres":1},"10":{"laboratorios":1,"talleres":1}}}
       },
-      "proyecto_vinculacion": {"requerido":true,"reglas_pendientes_de_definicion":true}
+      "proyecto_vinculacion": {
+        "requerido": true,
+        "nivel": 5,
+        "tipo": "anual",
+        "cuatrimestres": [9,10],
+        "unico_espacio": true,
+        "se_comporta_como_troncal_en_matriz": true,
+        "reglas_curriculares_especificas_pendientes": true
+      }
     }
   },
   "cargas_horarias": {"son_decision_de_fase_1":false,"visibles_en_banco_de_materias":false,"editables_por_usuario":false,"uso":"metadato_interno_para_validaciones"},
