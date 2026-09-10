@@ -11,29 +11,35 @@
 <script>
 (async()=>{
   try{
-    const response=await fetch('app-core.html?v=20260910-12',{cache:'no-store'});
+    const response=await fetch('app-core.html?v=20260910-13',{cache:'no-store'});
     if(!response.ok) throw new Error('No se pudo cargar la aplicación base.');
     let html=await response.text();
 
-    // FO: un laboratorio y un taller por Nivel 3, 4 y 5.
+    // Formación Orientada: en cada Nivel 3, 4 y 5 hay UN laboratorio y UN taller.
+    // Cada formato es cuatrimestral: uno se ubica en el primer cuatrimestre del nivel
+    // y el otro en el segundo. La escuela decide el orden.
     html=html.replace("{k:'foLab4',l:'FO · Laboratorio 4',a:t=>t===9||t===10},",'');
     html=html.replace("{k:'foTaller4',l:'FO · Taller 4',a:t=>t===9||t===10},",'');
+    html=html.replace("{k:'foLab1',l:'FO · Laboratorio 1',a:t=>t===5||t===6}","{k:'foLab1',l:'FO · Laboratorio · Nivel 3',a:t=>t===5||t===6}");
+    html=html.replace("{k:'foTaller1',l:'FO · Taller 1',a:t=>t===5||t===6}","{k:'foTaller1',l:'FO · Taller · Nivel 3',a:t=>t===5||t===6}");
+    html=html.replace("{k:'foLab2',l:'FO · Laboratorio 2',a:t=>t===7||t===8}","{k:'foLab2',l:'FO · Laboratorio · Nivel 4',a:t=>t===7||t===8}");
+    html=html.replace("{k:'foTaller2',l:'FO · Taller 2',a:t=>t===7||t===8}","{k:'foTaller2',l:'FO · Taller · Nivel 4',a:t=>t===7||t===8}");
+    html=html.replace("{k:'foLab3',l:'FO · Laboratorio 3',a:t=>t===9||t===10}","{k:'foLab3',l:'FO · Laboratorio · Nivel 5',a:t=>t===9||t===10}");
+    html=html.replace("{k:'foTaller3',l:'FO · Taller 3',a:t=>t===9||t===10}","{k:'foTaller3',l:'FO · Taller · Nivel 5',a:t=>t===9||t===10}");
 
-    // Aclaración visible: los dos formatos son cuatrimestrales y van en cuatrimestres distintos.
     html=html.replace(
       '<span>Artes: C1,C2,C3,C4,C7,C8</span>',
-      '<span>Artes: C1,C2,C3,C4,C7,C8</span><span>FO: 1 laboratorio + 1 taller por nivel, uno en cada cuatrimestre</span>'
+      '<span>Artes: C1,C2,C3,C4,C7,C8</span><span>FO: Nivel 3, 4 y 5 = 1 laboratorio + 1 taller; uno en cada cuatrimestre del nivel</span>'
     );
     html=html.replace(
       '<div class="rule"><strong>Formación Orientada:</strong> se construye dentro del PCI específico de esa orientación. Las reglas generales operan igual en todos los PCI.</div>',
-      '<div class="rule"><strong>Formación Orientada:</strong> en cada Nivel 3, 4 y 5 hay un laboratorio y un taller. Ambos son cuatrimestrales y se ubican en cuatrimestres distintos del nivel: si el laboratorio va en el primero, el taller va en el segundo, o viceversa.</div>'
+      '<div class="rule"><strong>Formación Orientada:</strong> Nivel 3 tiene 1 laboratorio y 1 taller entre C5/C6; Nivel 4 tiene 1 laboratorio y 1 taller entre C7/C8; Nivel 5 tiene 1 laboratorio y 1 taller entre C9/C10. Son cuatrimestrales: laboratorio y taller deben quedar en cuatrimestres distintos del mismo nivel y la escuela decide el orden.</div>'
     );
 
-    // Separa esta prueba del estado local anterior.
-    html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';","const STORAGE='pci-sa-v2-app-20260910-12';");
+    // Nuevo estado local para no arrastrar configuraciones de la maqueta anterior.
+    html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';","const STORAGE='pci-sa-v2-app-20260910-13';");
 
-    // Refuerzo operativo: dentro de cada nivel, Lab FO y Taller FO no pueden ocupar el mismo
-    // cuatrimestre ni duplicarse en ambos. Se elige un cuatrimestre para cada formato.
+    // Regla operativa para los tres niveles orientados.
     const patch=`
 <script>
 (function(){
@@ -50,10 +56,10 @@
       if(cfg){
         const otherTerm=cfg.terms.find(x=>x!==term);
         const p=ensure(state.active).placements;
-        const sameFormatOther=(p[key+'-c'+otherTerm]||[]).length>0;
-        if(sameFormatOther)return[false,'Este formato FO ya fue ubicado en C'+otherTerm+'. En cada nivel se usa una sola vez.'];
-        const otherFormatSame=(p[cfg.other+'-c'+term]||[]).length>0;
-        if(otherFormatSame)return[false,'En este nivel el laboratorio y el taller FO deben quedar en cuatrimestres distintos. Elegí C'+otherTerm+'.'];
+        if((p[key+'-c'+otherTerm]||[]).length>0)
+          return[false,'Este formato FO ya fue ubicado en C'+otherTerm+'. En este nivel se usa una sola vez.'];
+        if((p[cfg.other+'-c'+term]||[]).length>0)
+          return[false,'En este nivel el laboratorio y el taller FO deben quedar en cuatrimestres distintos. Usá C'+otherTerm+'.'];
       }
     }
     return baseValidTarget(slot,s);
@@ -71,7 +77,7 @@
       const otherB=(p[cfg.other+'-c'+b]||[]).length>0;
       [[a,bUsed||otherA],[b,aUsed||otherB]].forEach(([term,blocked])=>{
         const el=document.querySelector('[data-slot="'+key+'-c'+term+'"]');
-        if(el&&blocked){el.style.opacity='.38';el.style.background='#f4f6f8';}
+        if(el&&blocked){el.style.opacity='.35';el.style.background='#f4f6f8';el.title='No disponible: el otro formato de este nivel ocupa este cuatrimestre o este formato ya fue ubicado en el otro.';}
       });
     });
   };
