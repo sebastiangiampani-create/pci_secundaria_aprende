@@ -133,13 +133,13 @@ function level3Validation(){
 }
 function renderLevel3Controls(){
   const m=ensureMap(state.active);
-  document.querySelectorAll('#level3Modes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m.level3Mode));
+  document.querySelectorAll('#socialModes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m.level3Mode));
   const help={
     one:'La decisión es sobre todo el conjunto de laboratorios de Nivel 3: Naturales queda con Biología + Físico-Química; Sociales reúne las 4 materias; el Laboratorio FO queda independiente.',
     split:'Se organizan 4 laboratorios: Naturales, Sociales A, Sociales B y FO. Elegís libremente cómo repartir Historia, Geografía, FEC y Economía en dos parejas 2+2.',
     articulated:'Se organizan 3 laboratorios: Naturales, Sociales y FO. Una de las cuatro materias sociales se integra al Laboratorio FO junto con la materialización de 3.º; las otras tres quedan juntas en Sociales.'
   };
-  $('level3ModeHelp').textContent=help[m.level3Mode];
+  $('socialModeHelp').textContent=help[m.level3Mode];
 }
 function setLevel3Mode(mode){
   const m=ensureMap(state.active);m.level3Mode=mode;
@@ -158,11 +158,21 @@ function renderProposalForm(){const box=$('proposalFields');if(!currentProposalS
 function openPrint(){const m=ensureMap(state.active);$('printModalTitle').textContent=`${state.schoolName} · ${state.active}`;const spaces=structuralSpaces();const rows=spaces.map(s=>`<tr><td>${esc(s.label)}</td><td>${esc(s.subjects.join(' + '))}</td></tr>`).join('');$('docPreview').innerHTML=`<h1>Proyecto Curricular Institucional</h1><p><strong>Escuela:</strong> ${esc(state.schoolName)}</p><p><strong>Orientación:</strong> ${esc(state.active)}</p><h2>Parte I · Mapa de la Oferta</h2><p><strong>Estado:</strong> ${m.validated?'Validado':'En construcción'}</p><table><thead><tr><th>Espacio</th><th>Materias / materializaciones</th></tr></thead><tbody>${rows||'<tr><td colspan="2">Sin asignaciones todavía.</td></tr>'}</tbody></table><h2>Parte II · Mapa Propuesta Curricular</h2><p>${m.validated?'Disponible para desarrollo.':'Pendiente de validar el Mapa de la Oferta.'}</p>`;$('printModal').classList.add('open')}
 function downloadDoc(){const html=`<!doctype html><html><head><meta charset="utf-8"><title>PCI</title></head><body>${$('docPreview').innerHTML}</body></html>`;const blob=new Blob([html],{type:'application/msword'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`PCI-${slug(state.schoolName)}-${slug(state.active)}.doc`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 
+function patchLevel3Labels(){
+  const box=document.querySelector('.social-controls');if(!box)return;
+  const eyebrow=box.querySelector('.eyebrow');if(eyebrow)eyebrow.textContent='Nivel 3 · Composición de laboratorios';
+  const title=box.querySelector('strong');if(title)title.textContent='Elegí cómo se organizan Formación General y Formación Orientada';
+  const buttons=box.querySelectorAll('#socialModes [data-mode]');
+  const labels={one:'3 laboratorios · Naturales + Sociales + FO',split:'4 laboratorios · Naturales + Sociales A/B + FO',articulated:'3 laboratorios · Naturales + Sociales + FO articulado'};
+  buttons.forEach(b=>{if(labels[b.dataset.mode])b.textContent=labels[b.dataset.mode]});
+  const note=box.querySelector('.auto-note');if(note)note.textContent='Las materias anuales se replican automáticamente C5 ↔ C6';
+}
+
 async function init(){
   try{DATA=await fetch('data/materias-v2.json?v=20260910-6').then(r=>{if(!r.ok)throw new Error('No se pudo cargar materias-v2.json');return r.json()})}catch(err){document.body.innerHTML=`<main><div class="notice danger"><strong>Error cargando la base de materias.</strong><br>${esc(err.message)}</div></main>`;return}
-  load();state.selected=state.selected.filter(o=>ORIENTATIONS.includes(o));if(!state.selected.length)state.selected=['Economía y Administración'];state.active=ORIENTATIONS.includes(state.active)?state.active:state.selected[0];state.selected.forEach(ensureMap);renderHome();
+  load();state.selected=state.selected.filter(o=>ORIENTATIONS.includes(o));if(!state.selected.length)state.selected=['Economía y Administración'];state.active=ORIENTATIONS.includes(state.active)?state.active:state.selected[0];state.selected.forEach(ensureMap);patchLevel3Labels();renderHome();
   $('schoolName').oninput=()=>{state.schoolName=$('schoolName').value;save();renderHome()};document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>showScreen(b.dataset.go));$('openPhase1').onclick=()=>showScreen('phase1');$('openPhase2').onclick=()=>showScreen('phase2');$('rulesBtn').onclick=()=>$('rulesModal').classList.add('open');$('printBtn').onclick=openPrint;document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.remove('open'));document.querySelectorAll('.modal').forEach(m=>m.onclick=e=>{if(e.target===m)m.classList.remove('open')});
-  $('level3Modes').onclick=e=>{const b=e.target.closest('[data-mode]');if(b)setLevel3Mode(b.dataset.mode)};$('validateBtn').onclick=validateMap;$('teachers').oninput=()=>{ensureMap(state.active).teachers=$('teachers').value;save()};$('browserPrint').onclick=()=>window.print();$('downloadDoc').onclick=downloadDoc;
+  $('socialModes').onclick=e=>{const b=e.target.closest('[data-mode]');if(b)setLevel3Mode(b.dataset.mode)};$('validateBtn').onclick=validateMap;$('teachers').oninput=()=>{ensureMap(state.active).teachers=$('teachers').value;save()};$('browserPrint').onclick=()=>window.print();$('downloadDoc').onclick=downloadDoc;
   if($('toggleBagBtn'))$('toggleBagBtn').onclick=()=>{mapFocus=!mapFocus;renderPhase1()};
 }
 init();
