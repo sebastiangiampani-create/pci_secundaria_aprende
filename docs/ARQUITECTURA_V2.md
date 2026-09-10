@@ -10,19 +10,22 @@ La Fase 1 sirve exclusivamente para tomar decisiones de composición curricular.
 
 Se trabaja con:
 - orientación u orientaciones de la escuela;
-- materias/materializaciones de Formación General (FG) y Formación Orientada (FO);
+- materias/materializaciones de Formación General (FG) y Formación Orientada (FO) que intervienen en decisiones de agrupamiento;
 - 3.º, 4.º y 5.º año;
 - laboratorios, talleres y Proyecto de Vinculación;
 - agrupamientos;
 - articulaciones FG ↔ FO;
-- cargas horarias;
 - docente o docentes;
 - drag & drop;
 - validación inmediata de cada decisión: permitido / no permitido.
 
+Las cargas horarias oficiales **no son una decisión de Fase 1, no se editan y no deben formar parte del banco visible de materias/materializaciones**. Cuando una regla de composición necesita una carga horaria —por ejemplo, el máximo permitido para un laboratorio— ese dato puede conservarse como metadato interno para validación, sin mezclarlo con la decisión curricular que realiza el usuario.
+
 En Fase 1 **no existen** contenidos, objetivos, contexto problematizador, práctica/producto/eje, sinopsis, electividad ni planes.
 
 El resultado es una **matriz curricular preconfigurada**. Esa estructura se transfiere a Fase 2 sin volver a decidir qué materias integran cada espacio.
+
+Las materias o espacios que no requieren una decisión de agrupamiento no deben mezclarse dentro del banco de arrastre de esta fase. Pueden formar parte de la representación final del mapa, pero no del conjunto de elementos que el usuario debe decidir dónde ubicar.
 
 ### Fase 2 — Construcción curricular
 
@@ -90,7 +93,7 @@ La regla se aplica a:
 - laboratorios FO;
 - laboratorios articulados FG + FO.
 
-La validación debe producirse durante la composición, antes de aceptar un drop inválido.
+La validación debe producirse durante la composición, antes de aceptar un drop inválido. La carga horaria utilizada para esta comprobación es metadato del sistema, no un campo que el usuario deba decidir o editar en Fase 1.
 
 ## 6. Formación Orientada — estructura V2
 
