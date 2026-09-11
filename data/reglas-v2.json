@@ -1,5 +1,5 @@
 {
-  "version": 11,
+  "version": 12,
   "modelo_institucional": {
     "unidad_trabajo": "pci_por_escuela_y_orientacion",
     "escuela_madre_puede_tener_varios_pci": true,
@@ -26,7 +26,7 @@
         "agrupamientos",
         "articulaciones_fg_fo",
         "ubicaciones_c1_c10",
-        "docentes",
+        "docentes_opcionales_por_materia",
         "drag_drop"
       ],
       "prohibe": [
@@ -45,6 +45,14 @@
         "bloqueo_inmediato_de_accion_invalida": true,
         "bloqueo_debe_explicar_motivo": true,
         "bloqueo_debe_indicar_resolucion_si_existe": true
+      },
+      "docentes": {
+        "se_asignan_a": "materia",
+        "asignacion_opcional": true,
+        "puede_haber_materia_sin_docente": true,
+        "ausencia_docente_no_invalida_mapa": true,
+        "docente_viaja_con_la_materia_al_moverla": true,
+        "docente_se_conserva_en_replica_cuatrimestral": true
       }
     },
     "fase_2": {
@@ -249,6 +257,9 @@
       "respetar_excepciones_normativas",
       "controlar_carga_horaria",
       "aceptar_drop"
+    ],
+    "no_bloquea": [
+      "materias_sin_docente_asignado"
     ],
     "mensaje_de_error": {
       "titulo": "Acción no permitida",
