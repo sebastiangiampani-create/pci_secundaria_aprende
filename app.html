@@ -11,26 +11,28 @@
 <script>
 (async()=>{
   try{
-    const response=await fetch('app-core.html?v=20260910-23',{cache:'no-store'});
+    const response=await fetch('app-core.html?v=20260910-25',{cache:'no-store'});
     if(!response.ok) throw new Error('No se pudo cargar la aplicación base.');
     let html=await response.text();
 
     html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';","const STORAGE='pci-sa-v2-app-20260910-21';");
-    html=html.replace("data/materias-v2.json?v=20260910-7","data/materias-v2.json?v=20260910-23");
+    html=html.replace("data/materias-v2.json?v=20260910-7","data/materias-v2.json?v=20260910-25");
 
     html=html.replace(
       '<div class="notice"><strong>Importante:</strong> ubicar Historia de 1.º en C1 no la saca de la bolsa. Sigue disponible para C2. Lo mismo ocurre con todos los pares C1/C2, C3/C4, C5/C6, C7/C8 y C9/C10. En las troncales, una sola asignación ocupa los dos cuatrimestres.</div>',
-      '<div class="notice"><strong>Mapa inicial:</strong> la Formación General aparece prearmada como punto de partida y puede reorganizarse por drag & drop respetando las reglas. La Formación Orientada queda más abierta para que la escuela distribuya sus materializaciones. La asignación docente es opcional y se realiza sobre cada materia.</div>'
+      '<div class="notice"><strong>Mapa inicial:</strong> la Formación General aparece prearmada y puede reorganizarse. En Sociales de 3.º podés cambiar entre 10 y 12 laboratorios aun con las materias ya ubicadas, e intercambiar materias entre agrupamientos. EDI, Tutoría y materias agregadas pueden articularse con cualquier agrupamiento FG/FO del mismo año o construir espacios propios en Otros formatos. La asignación docente es opcional y se realiza sobre cada materia.</div>'
     );
 
     const closeScript='</scr'+'ipt>';
     html=html.replace('\ninit();\n'+closeScript,'\nwindow.__pciBaseInit=init;\n'+closeScript);
     html=html.replace('</body>',
-      '<script src="src/v19-map.js?v=20260910-23"></scr'+'ipt>\n'+
-      '<script src="src/v20-format-order.js?v=20260910-23"></scr'+'ipt>\n'+
-      '<script src="src/v21-custom-social-ui.js?v=20260910-23"></scr'+'ipt>\n'+
-      '<script src="src/v22-teachers.js?v=20260910-23"></scr'+'ipt>\n'+
-      '<script src="src/v23-prearm.js?v=20260910-23"></scr'+'ipt>\n'+
+      '<script src="src/v19-map.js?v=20260910-25"></scr'+'ipt>\n'+
+      '<script src="src/v20-format-order.js?v=20260910-25"></scr'+'ipt>\n'+
+      '<script src="src/v21-custom-social-ui.js?v=20260910-25"></scr'+'ipt>\n'+
+      '<script src="src/v22-teachers.js?v=20260910-25"></scr'+'ipt>\n'+
+      '<script src="src/v23-prearm.js?v=20260910-25"></scr'+'ipt>\n'+
+      '<script src="src/v24-social-interactions.js?v=20260910-25"></scr'+'ipt>\n'+
+      '<script src="src/v25-institutional-spaces.js?v=20260910-25"></scr'+'ipt>\n'+
       '<script>if(window.__pciBaseInit) window.__pciBaseInit();</scr'+'ipt>\n'+
       '</body>'
     );
