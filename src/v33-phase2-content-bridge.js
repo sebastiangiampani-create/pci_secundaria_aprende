@@ -34,7 +34,10 @@
     if (orientationMatch) {
       try {
         const response = await nativeFetch(input, init);
-        if (response.ok) return response;
+        if (response.ok) {
+          window.__pciPhase2MissingFO = null;
+          return response;
+        }
         window.__pciPhase2MissingFO = orientationMatch[1];
         return emptyCompressedArrayResponse();
       } catch (error) {
@@ -64,6 +67,16 @@
     } catch (_) {
       return 'Formación Orientada';
     }
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[c]));
   }
 
   function decoratePhase2() {
@@ -110,14 +123,18 @@
       if (meta.textContent !== text) meta.textContent = text;
     }
 
-    if (window.__pciPhase2MissingFO) {
-      const work = proposal.querySelector('.v28-work');
-      if (work && !proposal.querySelector('.v33-missing-fo')) {
-        const note = document.createElement('div');
-        note.className = 'v33-missing-fo';
-        note.innerHTML = `<strong>Bolsa FO pendiente:</strong> todavía no hay un archivo de contenidos priorizados para <strong>${String(activeOrientationLabel()).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</strong>. La Formación General sigue disponible y operativa; cuando se incorpore la bolsa FO, ambas fuentes funcionarán juntas desde “Todos · FG + FO”.`;
-        work.parentNode.insertBefore(note, work);
-      }
+    const existingMissingNote = proposal.querySelector('.v33-missing-fo');
+    if (!window.__pciPhase2MissingFO) {
+      existingMissingNote?.remove();
+      return;
+    }
+
+    const work = proposal.querySelector('.v28-work');
+    if (work && !existingMissingNote) {
+      const note = document.createElement('div');
+      note.className = 'v33-missing-fo';
+      note.innerHTML = `<strong>Bolsa FO pendiente:</strong> todavía no hay un archivo de contenidos priorizados para <strong>${escapeHtml(activeOrientationLabel())}</strong>. La Formación General sigue disponible y operativa; cuando se incorpore la bolsa FO, ambas fuentes funcionarán juntas desde “Todos · FG + FO”.`;
+      work.parentNode.insertBefore(note, work);
     }
   }
 
