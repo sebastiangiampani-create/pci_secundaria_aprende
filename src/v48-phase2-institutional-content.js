@@ -21,6 +21,7 @@
   function modal(){let m=document.getElementById('v48InstContentModal');if(m)return m;m=document.createElement('div');m.id='v48InstContentModal';m.className='v48-inst-modal';m.hidden=true;m.innerHTML='<section id="v48InstContentShell" class="v48-inst-shell" role="dialog" aria-modal="true"></section>';document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.hidden=true};return m}
   const close=()=>{const m=document.getElementById('v48InstContentModal');if(m)m.hidden=true};
   function manualRows(gid,subjectId){return rows().filter(x=>x.groupId===gid&&x.sourceSubjectId===subjectId)}
+  function legacyRows(gid){const g=group(gid);return rows().filter(x=>x.groupId===gid&&!x.sourceSubjectId&&(g?.data?.contents||[]).includes(x.id))}
 
   function editor(gid,subject,id=null){
     const g=group(gid);if(!g||!subject)return;const old=id?rows().find(x=>x.id===id&&x.groupId===gid):null,m=modal(),shell=document.getElementById('v48InstContentShell');
@@ -29,6 +30,7 @@
     shell.querySelector('[data-delete]')?.addEventListener('click',()=>remove(gid,old.id));
     shell.querySelector('#v48InstContentForm').onsubmit=e=>{e.preventDefault();const text=String(new FormData(e.currentTarget).get('text')||'').trim();if(!text)return;const gd=g.data,row=old||{id:uid(),component:'CUSTOM',createdAt:new Date().toISOString()};row.groupId=gid;row.area=g.area;row.sourceSubjectId=subject.id;row.subject=subject.name;row.axis='';row.text=text;if(!old)rows().push(row);gd.contents=Array.isArray(gd.contents)?gd.contents:[];if(!gd.contents.includes(row.id))gd.contents.push(row.id);persist();close();api()?.renderGroups?.()};
   }
+  function editLegacy(gid,id){const old=rows().find(x=>x.id===id&&x.groupId===gid);if(!old)return;const text=prompt('Contenido:',old.text||'');if(text===null)return;const clean=String(text).trim();if(!clean)return;old.text=clean;old.axis='';persist();api()?.renderGroups?.()}
   function remove(gid,id){
     const i=rows().findIndex(x=>x.id===id);if(i>=0)rows().splice(i,1);const g=group(gid);if(g){g.data.contents=(g.data.contents||[]).filter(x=>x!==id);(g.data.plansBimestrales||[]).forEach(p=>p.contentIds=(p.contentIds||[]).filter(x=>x!==id))}persist();close();api()?.renderGroups?.();
   }
@@ -38,11 +40,17 @@
       const gid=card.dataset.g,g=group(gid);if(!g)return;const institutional=(api()?.members?.(g)||[]).filter(s=>s.origin==='CUSTOM');
       card.querySelector('.v48-inst-content')?.remove();
       if(!institutional.length)return;
+      const legacy=legacyRows(gid);
+      if(institutional.length===1&&legacy.length){legacy.forEach(row=>{row.sourceSubjectId=institutional[0].id;row.subject=institutional[0].name;row.axis='' });persist()}
       card.querySelector('.v38-own')?.remove();
       const assigned=card.querySelector('.v28-assigned-wrap');if(!assigned)return;
       const section=document.createElement('section');section.className='v48-inst-content';
-      section.innerHTML=institutional.map(s=>{const own=manualRows(gid,s.id);return`<div class="v48-inst-block" data-subject="${esc(s.id)}"><div class="v48-inst-head"><div><h4>${esc(s.name)} · contenido institucional</h4><small>Este espacio incluye una materia incorporada por la institución. Sus contenidos deben ser agregados manualmente.</small></div><button class="v48-inst-add" type="button">+ Agregar contenido</button></div><div class="v48-inst-list">${own.length?own.map(c=>`<article class="v48-inst-item"><p>${esc(c.text)}</p><div class="v48-inst-actions"><button type="button" data-edit="${esc(c.id)}">Editar</button><button type="button" data-delete="${esc(c.id)}">Quitar</button></div></article>`).join(''):'<div class="v48-inst-empty">Todavía no hay contenidos cargados manualmente para esta materia.</div>'}</div></div>`}).join('');
-      section.querySelectorAll('.v48-inst-block').forEach(block=>{const subject=institutional.find(s=>s.id===block.dataset.subject);block.querySelector('.v48-inst-add').onclick=e=>{e.stopPropagation();editor(gid,subject)};block.querySelectorAll('[data-edit]').forEach(b=>b.onclick=e=>{e.stopPropagation();editor(gid,subject,b.dataset.edit)});block.querySelectorAll('[data-delete]').forEach(b=>b.onclick=e=>{e.stopPropagation();remove(gid,b.dataset.delete)})});
+      const blocks=institutional.map(s=>{const own=manualRows(gid,s.id);return`<div class="v48-inst-block" data-subject="${esc(s.id)}"><div class="v48-inst-head"><div><h4>${esc(s.name)} · contenido institucional</h4><small>Este espacio incluye una materia incorporada por la institución. Sus contenidos deben ser agregados manualmente.</small></div><button class="v48-inst-add" type="button">+ Agregar contenido</button></div><div class="v48-inst-list">${own.length?own.map(c=>`<article class="v48-inst-item"><p>${esc(c.text)}</p><div class="v48-inst-actions"><button type="button" data-edit="${esc(c.id)}">Editar</button><button type="button" data-delete="${esc(c.id)}">Quitar</button></div></article>`).join(''):'<div class="v48-inst-empty">Todavía no hay contenidos cargados manualmente para esta materia.</div>'}</div></div>`}).join('');
+      const remaining=legacyRows(gid);const legacyBlock=remaining.length?`<div class="v48-inst-block" data-legacy><div class="v48-inst-head"><div><h4>Contenidos propios previos</h4><small>Se conservan contenidos cargados antes de V48. No se eliminan ni afectan la cobertura oficial.</small></div></div><div class="v48-inst-list">${remaining.map(c=>`<article class="v48-inst-item"><p>${esc(c.text)}</p><div class="v48-inst-actions"><button type="button" data-legacy-edit="${esc(c.id)}">Editar</button><button type="button" data-delete="${esc(c.id)}">Quitar</button></div></article>`).join('')}</div></div>`:'';
+      section.innerHTML=blocks+legacyBlock;
+      section.querySelectorAll('.v48-inst-block[data-subject]').forEach(block=>{const subject=institutional.find(s=>s.id===block.dataset.subject);block.querySelector('.v48-inst-add').onclick=e=>{e.stopPropagation();editor(gid,subject)};block.querySelectorAll('[data-edit]').forEach(b=>b.onclick=e=>{e.stopPropagation();editor(gid,subject,b.dataset.edit)})});
+      section.querySelectorAll('[data-legacy-edit]').forEach(b=>b.onclick=e=>{e.stopPropagation();editLegacy(gid,b.dataset.legacyEdit)});
+      section.querySelectorAll('[data-delete]').forEach(b=>b.onclick=e=>{e.stopPropagation();remove(gid,b.dataset.delete)});
       assigned.insertAdjacentElement('afterend',section);
     });
   }
