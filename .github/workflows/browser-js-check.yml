@@ -1,0 +1,66 @@
+name: Browser JavaScript check
+
+on:
+  push:
+    branches:
+      - feature/v48-institucional
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done < <(find src -type f -name '*.js' -print0)
+      - name: Check V58 entry wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "src/v48-institutional-layer.js" app.html
+          grep -Fq "src/v48-phase2-institutional-content.js" app.html
+          grep -Fq "src/v57-custom-divisions.js" app.html
+          grep -Fq "src/v52-derived-teacher-load.js" app.html
+          grep -Fq "src/v51-school-timetable-config.js" app.html
+          grep -Fq "src/v49-teacher-availability.js" app.html
+          grep -Fq "src/v53-institutional-work-scheduler.js" app.html
+          grep -Fq "src/v54-auto-area-coincidence.js" app.html
+          grep -Fq "src/v58-parallel-phases.js" app.html
+          grep -Fq "src/v55-contiguous-area-blocks.js" app.html
+          grep -Fq "src/v56-offer-model.js" app.html
+          grep -Fq "20260912-58" app.html
+          grep -Fq "20260912-58" index.html
+      - name: Check institutional V58 rules
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const checks={
+            'src/v54-auto-area-coincidence.js':['AREA_BY_SLOT','auto-fg-','auto-fo-'],
+            'src/v55-contiguous-area-blocks.js':['commonBlocks','bloque continuo'],
+            'src/v56-offer-model.js':['minimumOutside=team+explicit','minimumTotal=front+minimumOutside','maxOutside=Math.floor(front*.5)','offerPctBySemester'],
+            'src/v57-custom-divisions.js':['divisionLabels','Personalizar nombres de divisiones'],
+            'src/v58-parallel-phases.js':["proposalCard?.classList.remove('locked')","institutionalCard?.classList.remove('locked')",'offer.minimumOutside','50 % de la carga frente a curso']
+          };
+          for(const [file,needles] of Object.entries(checks)){
+            const text=fs.readFileSync(file,'utf8');
+            for(const needle of needles){
+              if(!text.includes(needle))throw new Error(`${file}: falta ${needle}`);
+              console.log(`OK ${file}: ${needle}`);
+            }
+          }
+          NODE
+      - name: Smoke test legacy schedule generator
+        run: node tests/v50-generator-smoke.cjs
