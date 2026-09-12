@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#12395c">
-<title>PCI Secundaria Aprende · Preview V51</title>
+<title>PCI Secundaria Aprende · Preview V52</title>
 </head>
 <body>
-<p style="font-family:system-ui;padding:24px">Cargando Preview V51…</p>
+<p style="font-family:system-ui;padding:24px">Cargando Preview V52…</p>
 <script>
 (async()=>{
-  const VERSION='20260912-51-preview3';
+  const VERSION='20260912-52-preview4';
   const localModules=[
     'src/v19-map.js','src/v20-format-order.js','src/v21-custom-social-ui.js','src/v22-teachers.js',
     'src/v23-prearm.js','src/v24-social-interactions.js','src/v25-institutional-spaces.js','src/v26-other-formats-print.js',
@@ -19,6 +19,7 @@
   ];
   const previewModules=[
     'preview-v51-src/v48-institutional-layer.js','preview-v51-src/v48-phase2-institutional-content.js','preview-v51-src/v48-disable-phase1-teachers.js',
+    'preview-v51-src/v52-derived-teacher-load.js',
     'preview-v51-src/v51-school-timetable-config.js','preview-v51-src/v49-teacher-availability.js','preview-v51-src/v50-schedule-generator.js',
     'preview-v51-src/v51-preview-phase3-mode.js'
   ];
@@ -50,14 +51,14 @@
 
     let html=htmlRaw;
     html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';",`const STORAGE='${PREVIEW_STORAGE}';`);
-    html=html.replace("data/materias-v2.json?v=20260910-7","data/materias-v2.json?v=20260912-51-preview3");
+    html=html.replace("data/materias-v2.json?v=20260910-7","data/materias-v2.json?v=20260912-52-preview4");
     html=html.replace(
       '<div class="notice"><strong>Importante:</strong> ubicar Historia de 1.º en C1 no la saca de la bolsa. Sigue disponible para C2. Lo mismo ocurre con todos los pares C1/C2, C3/C4, C5/C6, C7/C8, C9/C10. En las troncales, una sola asignación ocupa los dos cuatrimestres.</div>',
-      '<div class="notice"><strong>Preview V51:</strong> Fase 1 conserva la estructura curricular; Fase 2 conserva todo el desarrollo curricular; la Implementación institucional funciona como una capa separada para cursos, docentes, jornada, disponibilidad y horarios. En esta preview la Fase 3 puede abrirse en modo prueba aunque Fase 1 todavía no esté validada. Esta vista usa una copia aislada de los datos locales y no modifica la V47 pública.</div>'
+      '<div class="notice"><strong>Preview V52:</strong> Fase 1 conserva la estructura curricular; Fase 2 conserva todo el desarrollo curricular; la Implementación institucional funciona como una capa separada para cursos, docentes, jornada, disponibilidad y horarios. En esta preview la Fase 3 puede abrirse en modo prueba aunque Fase 1 todavía no esté validada. Las horas base docentes se calculan a partir de las materias y cursos que se les asignan; no se cargan al crear el docente. Esta vista usa una copia aislada de los datos locales y no modifica la V47 pública.</div>'
     );
     html=html.replace(
       '<div class="notice"><strong>Importante:</strong> ubicar Historia de 1.º en C1 no la saca de la bolsa. Sigue disponible para C2. Lo mismo ocurre con todos los pares C1/C2, C3/C4, C5/C6, C7/C8 y C9/C10. En las troncales, una sola asignación ocupa los dos cuatrimestres.</div>',
-      '<div class="notice"><strong>Preview V51:</strong> Fase 1 conserva la estructura curricular; Fase 2 conserva todo el desarrollo curricular; la Implementación institucional funciona como una capa separada para cursos, docentes, jornada, disponibilidad y horarios. En esta preview la Fase 3 puede abrirse en modo prueba aunque Fase 1 todavía no esté validada. Esta vista usa una copia aislada de los datos locales y no modifica la V47 pública.</div>'
+      '<div class="notice"><strong>Preview V52:</strong> Fase 1 conserva la estructura curricular; Fase 2 conserva todo el desarrollo curricular; la Implementación institucional funciona como una capa separada para cursos, docentes, jornada, disponibilidad y horarios. En esta preview la Fase 3 puede abrirse en modo prueba aunque Fase 1 todavía no esté validada. Las horas base docentes se calculan a partir de las materias y cursos que se les asignan; no se cargan al crear el docente. Esta vista usa una copia aislada de los datos locales y no modifica la V47 pública.</div>'
     );
 
     const closeScript='</scr'+'ipt>';
@@ -73,7 +74,7 @@
     );
     document.open();document.write(html);document.close();
   }catch(error){
-    document.body.innerHTML='<main style="font-family:system-ui;padding:24px"><strong>Error al cargar el Preview V51.</strong><p>'+String(error.message||error)+'</p><p>La V47 pública no fue modificada.</p></main>';
+    document.body.innerHTML='<main style="font-family:system-ui;padding:24px"><strong>Error al cargar el Preview V52.</strong><p>'+String(error.message||error)+'</p><p>La V47 pública no fue modificada.</p></main>';
   }
 })();
 </script>
