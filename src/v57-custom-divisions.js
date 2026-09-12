@@ -74,6 +74,7 @@
   }
   document.addEventListener('change',e=>{const input=e.target.closest('[data-v48-course]');if(!input)return;const card=input.closest('.pci-card'),orientation=card?.querySelector('h3')?.textContent?.trim();if(!orientation)return;syncCount(orientation,Number(input.dataset.v48Course),Number(input.value));setTimeout(()=>renderPanel(card,orientation),0)},true);
   document.addEventListener('click',e=>{if(e.target.closest('[data-v48-home],#openInstitutional,.back'))setTimeout(refresh,80)},true);
+  patchApi();
   window.addEventListener('pci-app-ready',()=>setTimeout(start,350));
   window.PCICustomDivisionsV57={cfg,labels,syncCount,setLabels,decorateHome,decorateInstitutional};
 })();
