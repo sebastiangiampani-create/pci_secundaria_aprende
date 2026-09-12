@@ -25,7 +25,7 @@ jobs:
             echo "Checking $file"
             node --check "$file"
           done < <(find src -type f -name '*.js' -print0)
-      - name: Check V52 entry wiring
+      - name: Check V53 entry wiring
         shell: bash
         run: |
           set -euo pipefail
@@ -35,7 +35,17 @@ jobs:
           grep -q "src/v51-school-timetable-config.js" app.html
           grep -q "src/v49-teacher-availability.js" app.html
           grep -q "src/v50-schedule-generator.js" app.html
-          grep -q "20260912-52" app.html
-          grep -q "20260912-52" index.html
-      - name: Smoke test schedule generator
+          grep -q "src/v53-institutional-work-scheduler.js" app.html
+          grep -q "20260912-53" app.html
+          grep -q "20260912-53" index.html
+      - name: Check institutional V53 rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "maxTotalHours" src/v53-institutional-work-scheduler.js
+          grep -q "outsideWork" src/v53-institutional-work-scheduler.js
+          grep -q "coordinationHours:2" src/v53-institutional-work-scheduler.js
+          grep -q "Encuentro de área" src/v53-institutional-work-scheduler.js
+          grep -q "Trabajo fuera de curso" src/v53-institutional-work-scheduler.js
+      - name: Smoke test legacy schedule generator
         run: node tests/v50-generator-smoke.cjs
