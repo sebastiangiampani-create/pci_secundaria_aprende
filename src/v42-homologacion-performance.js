@@ -3,6 +3,13 @@
   const LOGO='https://raw.githubusercontent.com/sebastiangiampani-create/Matriz-PCI-Completa/main/assets/em-logo-header.svg';
   const FOOTER_LOGO='https://raw.githubusercontent.com/sebastiangiampani-create/Matriz-PCI-Completa/main/assets/em-logo-footer.svg';
   const MINISTERIO='https://raw.githubusercontent.com/sebastiangiampani-create/Matriz-PCI-Completa/main/assets/ministerio-footer.svg';
+  const FG_FILES=['db1.txt','db2.txt','db3.txt','db4.txt','rest1.txt','rest2.txt','rest3.txt','rest4.txt','rest5.txt'];
+  const ORI_FILE={
+    'Ciencias Naturales':'ciencias_naturales','Matemática y Física':'matematica_fisica','Energía y Sustentabilidad':'energia_sustentabilidad',
+    'Economía y Administración':'economia_administracion','Educación Física':'educacion_fisica','Comunicación':'comunicacion',
+    'Literatura':'literatura','Turismo':'turismo','Lenguas':'lenguas','Informática':'informatica','Educación':'educacion',
+    'Ciencias Sociales y Humanidades':'ciencias_sociales_humanidades','Arte - Artes Visuales':'arte','Arte - Música':'arte','Arte - Teatro':'arte','Agro y Ambiente':'agro_ambiente'
+  };
 
   function installStyles(){
     if(document.getElementById(STYLE_ID)) return;
@@ -48,9 +55,7 @@
     if(!header)return;
     header.classList.add('site-top');
     const brand=header.querySelector('.brand');
-    if(brand && !brand.querySelector('img')){
-      brand.innerHTML=`<img src="${LOGO}" alt="Escuela de Maestros">`;
-    }
+    if(brand && !brand.querySelector('img')) brand.innerHTML=`<img src="${LOGO}" alt="Escuela de Maestros">`;
     const rules=document.getElementById('rulesBtn');
     if(rules){rules.hidden=true;rules.style.display='none';rules.setAttribute('aria-hidden','true')}
     const print=document.getElementById('printBtn');
@@ -65,6 +70,19 @@
     document.body.appendChild(footer);
   }
 
+  function prewarmCurriculum(){
+    if(navigator.connection?.saveData)return;
+    const run=()=>{
+      const urls=FG_FILES.map(name=>`data/formacion_general/${name}?v=20260911-42`);
+      const active=typeof state!=='undefined'?state.active:null;
+      const ori=ORI_FILE[active];
+      if(ori) urls.push(`data/orientaciones/${ori}.txt?v=20260911-42`);
+      Promise.allSettled(urls.map(url=>fetch(url,{cache:'force-cache'}))).catch(()=>{});
+    };
+    if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:1500});else setTimeout(run,250);
+  }
+
   function start(){installStyles();homologateHeader();homologateFooter()}
+  window.addEventListener('pci-app-ready',prewarmCurriculum,{once:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
