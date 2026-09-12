@@ -10,7 +10,7 @@
 <p style="font-family:system-ui;padding:24px">Cargando PCI Secundaria Aprende V2…</p>
 <script>
 (async()=>{
-  const VERSION='20260911-44';
+  const VERSION='20260911-45';
   const modulePaths=[
     'src/v19-map.js','src/v20-format-order.js','src/v21-custom-social-ui.js','src/v22-teachers.js',
     'src/v23-prearm.js','src/v24-social-interactions.js','src/v25-institutional-spaces.js','src/v26-other-formats-print.js',
@@ -36,11 +36,11 @@
     phase2Source=phase2Source
       .replace("'Agro y Ambiente':{dcj:true}","'Agro y Ambiente':{f:'agro_ambiente',dcj:true}")
       .replace("if(m.dcj)return[];","")
-      .replace("data/orientaciones/${m.f}.txt?v=20260911-28","data/orientaciones/${m.f}.txt?v=20260911-44")
-      .replace("const FGFILES=['db1.txt','db2.txt','db3.txt','db4.txt','rest1.txt','rest2.txt','rest3.txt','rest4.txt','rest5.txt'].map(x=>`/Matriz-PCI-Completa/data/${x}`);","const FGFILES=['db1.txt','db2.txt','db3.txt','db4.txt','rest1.txt','rest2.txt','rest3.txt','rest4.txt','rest5.txt'].map(x=>`data/formacion_general/${x}?v=20260911-44`);")
+      .replace("data/orientaciones/${m.f}.txt?v=20260911-28","data/orientaciones/${m.f}.txt?v=20260911-45")
+      .replace("const FGFILES=['db1.txt','db2.txt','db3.txt','db4.txt','rest1.txt','rest2.txt','rest3.txt','rest4.txt','rest5.txt'].map(x=>`/Matriz-PCI-Completa/data/${x}`);","const FGFILES=['db1.txt','db2.txt','db3.txt','db4.txt','rest1.txt','rest2.txt','rest3.txt','rest4.txt','rest5.txt'].map(x=>`data/formacion_general/${x}?v=20260911-45`);")
       .replace("<button data-src=\"FO\" ${m.dcj?'disabled':''}>${esc2(state.active)}</button>","<button data-src=\"FO\">${esc2(state.active)}</button>")
       .replace("<strong>Contenidos priorizados${d.elective?' · compartidos A/B':''}</strong>","<strong>${(ORI[state.active]||{}).dcj?'Contenidos del Diseño Curricular':'Contenidos priorizados'}${d.elective?' · compartidos A/B':''}</strong>")
-      .replace("function allowed(c,g){if(isOther(g))return true;if(c.component==='FO')return hasFO(g);return members(g).filter(s=>s.origin==='FG').some(s=>subjectMatch(c,s.name))}","function allowed(c,g){if(isOther(g))return true;if(c.component==='CUSTOM')return c.groupId===g.id;if(c.component==='FO')return hasFO(g);return members(g).filter(s=>s.origin==='FG').some(s=>subjectMatch(c,s.name))}")
+      .replace("function allowed(c,g){if(isOther(g))return true;if(c.component==='FO')return hasFO(g);return members(g).filter(s=>s.origin==='FG').some(s=>subjectMatch(c,s.name))}","function allowed(c,g){if(c.component==='CUSTOM')return c.groupId===g.id;if(c.component==='FO')return hasFO(g);const sourceArea=g.area==='Otros formatos pedagógicos'?'Tecnologías':g.area;return c.component==='FG'&&c.area===sourceArea}")
       .replace("const oriContents=()=>FO.get(fkey())||[],findContent=id=>[...(FG||[]),...oriContents()].find(c=>c.id===id)","const oriContents=()=>FO.get(fkey())||[],customContents=()=>{const x=p2();x.customContents=Array.isArray(x.customContents)?x.customContents:[];return x.customContents},findContent=id=>[...(FG||[]),...oriContents(),...customContents()].find(c=>c.id===id)")
       .replace("function pool(a){const gs=ga(a);return[...(FG||[]),...oriContents()].filter(c=>gs.some(g=>allowed(c,g)))}","function pool(a){const gs=ga(a),tg=gb(targetGroup),scope=tg&&tg.area===a?[tg]:gs;return[...(FG||[]),...oriContents()].filter(c=>scope.some(g=>allowed(c,g)))}")
       .replace("function home(){if(!$('v28home'))shell();","function home(){window.__pciEnsurePrearm?.();if(!$('v28home'))shell();")
@@ -55,22 +55,22 @@
       phase2Source.includes('if(m.dcj)return[];') ||
       !phase2Source.includes('window.PCIPhase2V28=') ||
       !phase2Source.includes('pci-phase2-groups-rendered') ||
+      !phase2Source.includes("sourceArea=g.area==='Otros formatos pedagógicos'?'Tecnologías':g.area") ||
       !phase2Source.includes('scope=tg&&tg.area===a?[tg]:gs') ||
-      !phase2Source.includes("if(c.component==='FO')return hasFO(g)") ||
-      !phase2Source.includes('data/formacion_general/${x}?v=20260911-44') ||
+      !phase2Source.includes('data/formacion_general/${x}?v=20260911-45') ||
       !phase2Source.includes('window.__pciEnsurePrearm?.()') ||
       !phase2Source.includes("renderGroups();renderBag();selectionBar()")
-    ) throw new Error('No se pudo aplicar la integración V44 de Fase 2.');
+    ) throw new Error('No se pudo aplicar la integración V45 de Fase 2.');
 
     html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';","const STORAGE='pci-sa-v2-app-20260910-21';");
-    html=html.replace("data/materias-v2.json?v=20260910-7","data/materias-v2.json?v=20260911-44");
+    html=html.replace("data/materias-v2.json?v=20260910-7","data/materias-v2.json?v=20260911-45");
     html=html.replace(
       '<div class="notice"><strong>Importante:</strong> ubicar Historia de 1.º en C1 no la saca de la bolsa. Sigue disponible para C2. Lo mismo ocurre con todos los pares C1/C2, C3/C4, C5/C6, C7/C8, C9/C10. En las troncales, una sola asignación ocupa los dos cuatrimestres.</div>',
-      '<div class="notice"><strong>Mapa inicial:</strong> la Formación General aparece prearmada y puede reorganizarse. Desde Nivel 3, las materias de Formación Orientada pueden integrarse a laboratorios de Ciencias Sociales o Ciencias Naturales del mismo año siempre que se preserven los mínimos de los espacios FO. En Formación Orientada, los laboratorios y talleres de Nivel 4 y Nivel 5 necesitan al menos dos asignaturas; en Nivel 3 pueden conformarse con una sola. Los espacios FO incompletos no permiten validar el Mapa de la Oferta. La asignación docente es opcional y se realiza sobre cada materia. La Fase 2 hereda exactamente la composición de cada agrupamiento y muestra solo los contenidos que le corresponden.</div>'
+      '<div class="notice"><strong>Mapa inicial:</strong> la Formación General aparece prearmada y puede reorganizarse. Desde Nivel 3, las materias de Formación Orientada pueden integrarse a laboratorios de Ciencias Sociales o Ciencias Naturales del mismo año siempre que se preserven los mínimos de los espacios FO. En Formación Orientada, los laboratorios y talleres de Nivel 4 y Nivel 5 necesitan al menos dos asignaturas; en Nivel 3 pueden conformarse con una sola. Los espacios FO incompletos no permiten validar el Mapa de la Oferta. La asignación docente es opcional y se realiza sobre cada materia. La Fase 2 conserva la bolsa completa de contenidos priorizados por área; si un agrupamiento FG fue combinado con FO en Fase 1, suma también los contenidos de la orientación.</div>'
     );
     html=html.replace(
       '<div class="notice"><strong>Importante:</strong> ubicar Historia de 1.º en C1 no la saca de la bolsa. Sigue disponible para C2. Lo mismo ocurre con todos los pares C1/C2, C3/C4, C5/C6, C7/C8 y C9/C10. En las troncales, una sola asignación ocupa los dos cuatrimestres.</div>',
-      '<div class="notice"><strong>Mapa inicial:</strong> la Formación General aparece prearmada y puede reorganizarse. Desde Nivel 3, las materias de Formación Orientada pueden integrarse a laboratorios de Ciencias Sociales o Ciencias Naturales del mismo año siempre que se preserven los mínimos de los espacios FO. En Formación Orientada, los laboratorios y talleres de Nivel 4 y Nivel 5 necesitan al menos dos asignaturas; en Nivel 3 pueden conformarse con una sola. Los espacios FO incompletos no permiten validar el Mapa de la Oferta. La asignación docente es opcional y se realiza sobre cada materia. La Fase 2 hereda exactamente la composición de cada agrupamiento y muestra solo los contenidos que le corresponden.</div>'
+      '<div class="notice"><strong>Mapa inicial:</strong> la Formación General aparece prearmada y puede reorganizarse. Desde Nivel 3, las materias de Formación Orientada pueden integrarse a laboratorios de Ciencias Sociales o Ciencias Naturales del mismo año siempre que se preserven los mínimos de los espacios FO. En Formación Orientada, los laboratorios y talleres de Nivel 4 y Nivel 5 necesitan al menos dos asignaturas; en Nivel 3 pueden conformarse con una sola. Los espacios FO incompletos no permiten validar el Mapa de la Oferta. La asignación docente es opcional y se realiza sobre cada materia. La Fase 2 conserva la bolsa completa de contenidos priorizados por área; si un agrupamiento FG fue combinado con FO en Fase 1, suma también los contenidos de la orientación.</div>'
     );
 
     const closeScript='</scr'+'ipt>';
