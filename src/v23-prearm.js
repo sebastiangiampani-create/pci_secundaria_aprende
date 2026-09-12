@@ -10,6 +10,11 @@
     return Object.values(current().placements||{}).some(ids=>(ids||[]).includes(id));
   }
 
+  function hasAnyFGPlacement(){
+    const m=current();
+    return Object.values(m.placements||{}).some(ids=>(ids||[]).some(id=>byId(id)?.origin==='FG'));
+  }
+
   function pushIfMissing(slot,id){
     if(!id)return;
     const p=current().placements;
@@ -35,8 +40,12 @@
   function prearmMap(){
     if(!state.active)return false;
     const m=current();
-    if(m.prearmVersion>=PREARM_VERSION)return false;
     m.placements=m.placements||{};
+
+    // Si la orientación ya tiene FG, nunca reconstruimos ni pisamos decisiones institucionales.
+    // Si quedó marcada como prearmada pero no conserva ninguna FG (estado viejo/incompleto),
+    // se repara una sola vez reconstruyendo exclusivamente la base de Formación General.
+    if(m.prearmVersion>=PREARM_VERSION && hasAnyFGPlacement())return false;
 
     // Troncales anuales: aparecen armadas desde el inicio.
     for(let year=1;year<=5;year++){
@@ -74,7 +83,6 @@
     placePaired(4,'Historia','social');
     placePaired(4,'Geografía','social');
     placePaired(4,'Formación Ética y Ciudadana','social');
-    // La fuente de FG de 5.º contiene Filosofía como único espacio de este campo.
     placePaired(5,'Filosofía','social');
 
     // Talleres de Formación General.
@@ -89,12 +97,6 @@
 
     for(let year=1;year<=5;year++)placePaired(year,'Educación Física','ef');
 
-    // Deliberadamente NO se precargan:
-    // - Formación Orientada (la institución decide cómo distribuir sus materializaciones),
-    // - Proyecto de Vinculación,
-    // - Espacios de Definición Institucional,
-    // - Tutoría,
-    // - materias agregadas por la escuela.
     m.prearmVersion=PREARM_VERSION;
     m.valid=false;
     save();
