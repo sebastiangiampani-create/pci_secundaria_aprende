@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#12395c">
-<title>PCI Secundaria Aprende · Preview V55</title>
+<title>PCI Secundaria Aprende · Preview V57</title>
 </head>
 <body>
-<p style="font-family:system-ui;padding:24px">Cargando Preview V55…</p>
+<p style="font-family:system-ui;padding:24px">Cargando Preview V57…</p>
 <script>
 (async()=>{
-  const VERSION='20260912-55-preview7';
+  const VERSION='20260912-57-preview8';
   const localModules=[
     'src/v19-map.js','src/v20-format-order.js','src/v21-custom-social-ui.js','src/v22-teachers.js',
     'src/v23-prearm.js','src/v24-social-interactions.js','src/v25-institutional-spaces.js','src/v26-other-formats-print.js',
@@ -18,10 +18,10 @@
     'src/v38-phase2-workspace.js','src/v47-elective-plans.js','src/v42-homologacion-performance.js'
   ];
   const previewModules=[
-    'preview-v51-src/v48-institutional-layer.js','preview-v51-src/v48-phase2-institutional-content.js','preview-v51-src/v48-disable-phase1-teachers.js',
+    'preview-v51-src/v48-institutional-layer.js','preview-v51-src/v48-phase2-institutional-content.js','preview-v51-src/v48-disable-phase1-teachers.js','preview-v51-src/v57-custom-divisions.js',
     'preview-v51-src/v52-derived-teacher-load.js',
     'preview-v51-src/v51-school-timetable-config.js','preview-v51-src/v49-teacher-availability.js','preview-v51-src/v50-schedule-generator.js',
-    'preview-v51-src/v53-institutional-work-scheduler.js','preview-v51-src/v54-auto-area-coincidence.js','preview-v51-src/v55-contiguous-area-blocks.js',
+    'preview-v51-src/v53-institutional-work-scheduler.js','preview-v51-src/v54-auto-area-coincidence.js','preview-v51-src/v55-contiguous-area-blocks.js','preview-v51-src/v56-offer-model.js',
     'preview-v51-src/v51-preview-phase3-mode.js'
   ];
   const fetchText=async url=>{
@@ -52,8 +52,8 @@
 
     let html=htmlRaw;
     html=html.replace("const STORAGE='pci-sa-v2-app-20260910-7';",`const STORAGE='${PREVIEW_STORAGE}';`);
-    html=html.replace("data/materias-v2.json?v=20260910-7","data/materias-v2.json?v=20260912-55-preview7");
-    const notice='<div class="notice"><strong>Preview V55:</strong> Fase 1 conserva la estructura curricular y Fase 2 conserva íntegramente el desarrollo curricular. La Fase 3 organiza la implementación institucional. Los equipos se detectan automáticamente desde las materias y asignaciones de Fase 1: cada área de Formación General y cada Formación Orientada genera su propio equipo docente. Cada equipo debe compartir semanalmente, fuera de clases y dentro del horario escolar, un bloque continuo de 3 o 4 horas cátedra. Esta vista usa almacenamiento aislado y no modifica la V47 estable.</div>';
+    html=html.replace("data/materias-v2.json?v=20260910-7","data/materias-v2.json?v=20260912-57-preview8");
+    const notice='<div class="notice"><strong>Preview V57:</strong> Fase 1 conserva la estructura curricular y Fase 2 conserva íntegramente el desarrollo curricular. La Fase 3 organiza la implementación institucional. La oferta docente parte de las horas frente a curso, suma siempre la planificación obligatoria de cada equipo y permite agregar entre 0 % y 50 % adicional sobre las horas frente a curso. El 50 % es un techo, no una asignación automática. Las divisiones pueden mantener A/B/C o usar nombres reales personalizados. Esta vista usa almacenamiento aislado y no modifica la V47 estable.</div>';
     html=html.replace(
       '<div class="notice"><strong>Importante:</strong> ubicar Historia de 1.º en C1 no la saca de la bolsa. Sigue disponible para C2. Lo mismo ocurre con todos los pares C1/C2, C3/C4, C5/C6, C7/C8, C9/C10. En las troncales, una sola asignación ocupa los dos cuatrimestres.</div>',
       notice
@@ -76,7 +76,7 @@
     );
     document.open();document.write(html);document.close();
   }catch(error){
-    document.body.innerHTML='<main style="font-family:system-ui;padding:24px"><strong>Error al cargar el Preview V55.</strong><p>'+String(error.message||error)+'</p><p>La V47 pública no fue modificada.</p></main>';
+    document.body.innerHTML='<main style="font-family:system-ui;padding:24px"><strong>Error al cargar el Preview V57.</strong><p>'+String(error.message||error)+'</p><p>La V47 pública no fue modificada.</p></main>';
   }
 })();
 </script>
