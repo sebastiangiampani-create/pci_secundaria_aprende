@@ -33,6 +33,7 @@
   }
 
   function prearmMap(){
+    if(!state.active)return false;
     const m=current();
     if(m.prearmVersion>=PREARM_VERSION)return false;
     m.placements=m.placements||{};
@@ -100,6 +101,9 @@
     return true;
   }
 
+  // Permite que Fase 2 asegure el mapa base aunque el usuario nunca haya abierto Fase 1.
+  window.__pciEnsurePrearm=prearmMap;
+
   // Filosofía de 5.º forma parte del armado base de Sociales y debe poder moverse
   // dentro de los laboratorios de Sociales de su mismo nivel.
   const previousValidTarget=validTarget;
@@ -110,6 +114,13 @@
       return[true,''];
     }
     return previousValidTarget(slot,s);
+  };
+
+  // Asegurar Formación General apenas se abre cualquier PCI, antes de entrar a Fase 1 o Fase 2.
+  const previousRenderPanel=renderPanel;
+  renderPanel=function(){
+    prearmMap();
+    previousRenderPanel();
   };
 
   const previousRenderOffer=renderOffer;
