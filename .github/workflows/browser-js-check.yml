@@ -34,3 +34,5 @@ jobs:
           grep -q "src/v49-teacher-availability.js" app.html
           grep -q "src/v50-schedule-generator.js" app.html
           grep -q "20260912-50" app.html
+      - name: Smoke test schedule generator
+        run: node tests/v50-generator-smoke.cjs
