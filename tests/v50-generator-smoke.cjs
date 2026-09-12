@@ -3,6 +3,7 @@ const vm=require('vm');
 const assert=require('assert');
 
 global.window=global;
+global.addEventListener=()=>{};
 global.document={
   createElement(){return {textContent:'',className:'',id:'',innerHTML:'',appendChild(){},querySelector(){return null},querySelectorAll(){return []}}},
   head:{appendChild(){}},
