@@ -19,7 +19,7 @@
 
   function panelText(){
     const p=$id('panel')?.querySelector('.hero p');
-    if(p)p.textContent='Fase 1, Fase 2 e Implementación institucional pueden trabajarse sin esperar el cierre definitivo del Mapa de la Oferta. Mientras Fase 1 esté en construcción, las otras capas utilizan su estado actual.';
+    if(p)p.textContent='Fase 1, Fase 2 e Implementación institucional pueden trabajarse en paralelo. Si el Mapa de la Oferta todavía está en construcción, las otras capas utilizan la estructura disponible hasta ese momento y señalan lo que falte completar.';
   }
 
   function unlockPanel(){
@@ -44,7 +44,7 @@
     $id('v58ProposalNote')?.remove();
     if(isValidated())return;
     const note=document.createElement('div');note.id='v58ProposalNote';note.className='v58-partial-note';
-    note.innerHTML='<strong>Fase 1 en construcción.</strong> Podés desarrollar la Fase 2 normalmente con los espacios que ya están definidos. Si después modificás el Mapa de la Oferta, la Fase 2 conservará lo ya cargado y reflejará la estructura vigente para continuar el desarrollo curricular.';
+    note.innerHTML='<strong>Fase 1 en construcción.</strong> Podés trabajar la Fase 2 con los espacios que ya están definidos. Los contenidos, objetivos y planes cargados se conservan; si después cambia la estructura de Fase 1, la Fase 2 continúa desde la estructura vigente sin borrar el desarrollo ya realizado.';
     const hero=proposal.querySelector('.hero');
     if(hero)hero.after(note);else proposal.prepend(note);
   }
@@ -53,26 +53,38 @@
     const host=$id('v48InstitutionalContent');if(!host)return;
     $id('v58InstitutionalNote')?.remove();
     const note=document.createElement('div');note.id='v58InstitutionalNote';
-    if(wasValidated){note.className='v58-ready-note';note.innerHTML='<strong>Fuente:</strong> Implementación institucional lee la estructura actual de Fase 1 y mantiene separada la Fase 2 curricular.';}
-    else{note.className='v58-partial-note';note.innerHTML='<strong>Fase 1 en construcción.</strong> La implementación institucional queda habilitada con la información disponible hasta este momento. Podés configurar divisiones, docentes, carga y jornada; los controles de horario avisarán qué datos faltan antes de generar una propuesta completa.';}
+    if(wasValidated){note.className='v58-ready-note';note.innerHTML='<strong>Fuente:</strong> Implementación institucional toma la estructura actual de Fase 1 y mantiene separada la Fase 2 curricular.';}
+    else{note.className='v58-partial-note';note.innerHTML='<strong>Fase 1 en construcción.</strong> La implementación institucional funciona con la información ya disponible. Podés configurar divisiones, docentes, oferta, jornada y disponibilidad; antes de generar el horario completo el sistema avisará qué datos estructurales faltan.';}
     host.prepend(note);
   }
 
+  function patchInstitutionalApi(){
+    const api=institutionalApi();if(!api||api.__v58Patched)return api;
+    const original=api.renderInstitutional?.bind(api);if(!original)return api;
+    api.__v58OriginalRenderInstitutional=original;
+    api.renderInstitutional=async function(){
+      if(renderingInstitutional)return;
+      const map=currentMap();if(!map)return;
+      renderingInstitutional=true;
+      const wasValidated=!!map.valid;
+      if(!wasValidated)map.valid=true;
+      try{
+        await original();
+      }catch(error){
+        console.error('V58 institutional render',error);
+      }finally{
+        map.valid=wasValidated;
+        renderingInstitutional=false;
+      }
+      institutionalNote(wasValidated);
+    };
+    api.__v58Patched=true;
+    return api;
+  }
+
   async function renderInstitutionalPartial(){
-    if(renderingInstitutional)return;
-    const api=institutionalApi(),map=currentMap();if(!api?.renderInstitutional||!map)return;
-    renderingInstitutional=true;
-    const wasValidated=!!map.valid;
-    if(!wasValidated)map.valid=true;
-    try{
-      await api.renderInstitutional();
-    }catch(error){
-      console.error('V58 institutional render',error);
-    }finally{
-      map.valid=wasValidated;
-      renderingInstitutional=false;
-    }
-    institutionalNote(wasValidated);
+    const api=patchInstitutionalApi();
+    await api?.renderInstitutional?.();
   }
 
   function selectedSemester(){return Number($id('v53Semester')?.value)||1}
@@ -85,13 +97,10 @@
     const section=$id('v53Scheduler');if(!section)return;
     section.querySelector('.v58-offer-conflict')?.remove();
     const box=document.createElement('div');box.className='v53-report bad v58-offer-conflict';
-    box.innerHTML=`<h3>La oferta obligatoria supera el máximo permitido</h3><ul>${conflicts.map(({teacher,offer})=>`<li>${teacher.name}: ${offer.front} HC frente a curso, ${offer.minimumOutside} HC obligatorias fuera de curso. El máximo permitido fuera de curso es ${offer.maxOutside} HC (50 %).</li>`).join('')}</ul>`;
+    box.innerHTML=`<h3>La oferta obligatoria supera el máximo permitido</h3><ul>${conflicts.map(({teacher,offer})=>`<li>${teacher.name}: ${offer.front} HC frente a curso, ${offer.minimumOutside} HC obligatorias fuera de curso. El máximo permitido fuera de curso es ${offer.maxOutside} HC (50 % de la carga frente a curso).</li>`).join('')}</ul>`;
     section.querySelector('.v53-actions')?.after(box);
   }
 
-  // Este listener se registra antes que V55. Si el piso obligatorio supera el
-  // 50 %, el horario no puede generarse: se informa el conflicto sin ampliar
-  // artificialmente el máximo.
   document.addEventListener('click',e=>{
     const trigger=e.target.closest('[data-v53-generate],[data-v53-check]');if(!trigger)return;
     const conflicts=offerConflicts();if(!conflicts.length)return;
@@ -100,7 +109,7 @@
   },true);
 
   const previousRenderPanel=renderPanel;
-  renderPanel=function(){previousRenderPanel();setTimeout(unlockPanel,0)};
+  renderPanel=function(){previousRenderPanel();setTimeout(()=>{patchInstitutionalApi();unlockPanel()},0)};
 
   const previousScreen=window.screen;
   if(typeof previousScreen==='function'){
@@ -114,11 +123,11 @@
     Object.assign(wrapped,previousScreen);window.screen=wrapped;
   }
 
-  window.addEventListener('pci-app-ready',()=>setTimeout(()=>{unlockPanel();proposalNote()},180));
+  window.addEventListener('pci-app-ready',()=>setTimeout(()=>{patchInstitutionalApi();unlockPanel();proposalNote()},180));
   document.addEventListener('click',e=>{
     if(e.target.closest('#openProposal'))setTimeout(proposalNote,80);
     if(e.target.closest('#openInstitutional'))setTimeout(renderInstitutionalPartial,80);
   },true);
 
-  window.PCIParallelPhasesV58={unlockPanel,proposalNote,renderInstitutionalPartial,offerConflicts};
+  window.PCIParallelPhasesV58={unlockPanel,proposalNote,renderInstitutionalPartial,offerConflicts,patchInstitutionalApi};
 })();
