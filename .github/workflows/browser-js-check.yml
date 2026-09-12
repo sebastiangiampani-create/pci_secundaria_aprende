@@ -29,37 +29,37 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "src/v48-institutional-layer.js" app.html
-          grep -q "src/v48-phase2-institutional-content.js" app.html
-          grep -q "src/v57-custom-divisions.js" app.html
-          grep -q "src/v52-derived-teacher-load.js" app.html
-          grep -q "src/v51-school-timetable-config.js" app.html
-          grep -q "src/v49-teacher-availability.js" app.html
-          grep -q "src/v53-institutional-work-scheduler.js" app.html
-          grep -q "src/v54-auto-area-coincidence.js" app.html
-          grep -q "src/v58-parallel-phases.js" app.html
-          grep -q "src/v55-contiguous-area-blocks.js" app.html
-          grep -q "src/v56-offer-model.js" app.html
-          grep -q "20260912-58" app.html
-          grep -q "20260912-58" index.html
+          grep -Fq "src/v48-institutional-layer.js" app.html
+          grep -Fq "src/v48-phase2-institutional-content.js" app.html
+          grep -Fq "src/v57-custom-divisions.js" app.html
+          grep -Fq "src/v52-derived-teacher-load.js" app.html
+          grep -Fq "src/v51-school-timetable-config.js" app.html
+          grep -Fq "src/v49-teacher-availability.js" app.html
+          grep -Fq "src/v53-institutional-work-scheduler.js" app.html
+          grep -Fq "src/v54-auto-area-coincidence.js" app.html
+          grep -Fq "src/v58-parallel-phases.js" app.html
+          grep -Fq "src/v55-contiguous-area-blocks.js" app.html
+          grep -Fq "src/v56-offer-model.js" app.html
+          grep -Fq "20260912-58" app.html
+          grep -Fq "20260912-58" index.html
       - name: Check institutional V58 rules
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "AREA_BY_SLOT" src/v54-auto-area-coincidence.js
-          grep -q "auto-fg-" src/v54-auto-area-coincidence.js
-          grep -q "auto-fo-" src/v54-auto-area-coincidence.js
-          grep -q "commonBlocks" src/v55-contiguous-area-blocks.js
-          grep -q "bloque continuo" src/v55-contiguous-area-blocks.js
-          grep -q "minimumOutside=team+explicit" src/v56-offer-model.js
-          grep -q "minimumTotal=front+minimumOutside" src/v56-offer-model.js
-          grep -q "maxOutside=Math.floor(front\*.5)" src/v56-offer-model.js
-          grep -q "offerPctBySemester" src/v56-offer-model.js
-          grep -q "divisionLabels" src/v57-custom-divisions.js
-          grep -q "Personalizar nombres de divisiones" src/v57-custom-divisions.js
-          grep -q "proposalCard?.classList.remove('locked')" src/v58-parallel-phases.js
-          grep -q "institutionalCard?.classList.remove('locked')" src/v58-parallel-phases.js
-          grep -q "offer.minimumOutside" src/v58-parallel-phases.js
-          grep -q "50 % de la carga frente a curso" src/v58-parallel-phases.js
+          grep -Fq "AREA_BY_SLOT" src/v54-auto-area-coincidence.js
+          grep -Fq "auto-fg-" src/v54-auto-area-coincidence.js
+          grep -Fq "auto-fo-" src/v54-auto-area-coincidence.js
+          grep -Fq "commonBlocks" src/v55-contiguous-area-blocks.js
+          grep -Fq "bloque continuo" src/v55-contiguous-area-blocks.js
+          grep -Fq "minimumOutside=team+explicit" src/v56-offer-model.js
+          grep -Fq "minimumTotal=front+minimumOutside" src/v56-offer-model.js
+          grep -Fq "maxOutside=Math.floor(front*.5)" src/v56-offer-model.js
+          grep -Fq "offerPctBySemester" src/v56-offer-model.js
+          grep -Fq "divisionLabels" src/v57-custom-divisions.js
+          grep -Fq "Personalizar nombres de divisiones" src/v57-custom-divisions.js
+          grep -Fq "proposalCard?.classList.remove('locked')" src/v58-parallel-phases.js
+          grep -Fq "institutionalCard?.classList.remove('locked')" src/v58-parallel-phases.js
+          grep -Fq "offer.minimumOutside" src/v58-parallel-phases.js
+          grep -Fq "50 % de la carga frente a curso" src/v58-parallel-phases.js
       - name: Smoke test legacy schedule generator
         run: node tests/v50-generator-smoke.cjs
