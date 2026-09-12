@@ -24,7 +24,7 @@
       .replace("data/orientaciones/${m.f}.txt?v=20260911-28","data/orientaciones/${m.f}.txt?v=20260911-40")
       .replace("<button data-src=\"FO\" ${m.dcj?'disabled':''}>${esc2(state.active)}</button>","<button data-src=\"FO\">${esc2(state.active)}</button>")
       .replace("<strong>Contenidos priorizados${d.elective?' · compartidos A/B':''}</strong>","<strong>${(ORI[state.active]||{}).dcj?'Contenidos del Diseño Curricular':'Contenidos priorizados'}${d.elective?' · compartidos A/B':''}</strong>")
-      .replace("function allowed(c,g){if(isOther(g))return true;if(c.component==='FO')return hasFO(g);return members(g).filter(s=>s.origin==='FG').some(s=>subjectMatch(c,s.name))}","function allowed(c,g){if(isOther(g))return true;if(c.component==='CUSTOM')return c.groupId===g.id;const ms=members(g);if(c.component==='FO')return ms.filter(s=>s.origin==='FO').some(s=>subjectMatch(c,s.name)||norm(c.subject).includes(norm(s.name))||norm(s.name).includes(norm(c.subject)));return ms.filter(s=>s.origin==='FG').some(s=>subjectMatch(c,s.name))}")
+      .replace("function allowed(c,g){if(isOther(g))return true;if(c.component==='FO')return hasFO(g);return members(g).filter(s=>s.origin==='FG').some(s=>subjectMatch(c,s.name))}","function allowed(c,g){if(isOther(g))return true;if(c.component==='CUSTOM')return c.groupId===g.id;if(c.component==='FO')return hasFO(g);return members(g).filter(s=>s.origin==='FG').some(s=>subjectMatch(c,s.name))}")
       .replace("const oriContents=()=>FO.get(fkey())||[],findContent=id=>[...(FG||[]),...oriContents()].find(c=>c.id===id)","const oriContents=()=>FO.get(fkey())||[],customContents=()=>{const x=p2();x.customContents=Array.isArray(x.customContents)?x.customContents:[];return x.customContents},findContent=id=>[...(FG||[]),...oriContents(),...customContents()].find(c=>c.id===id)")
       .replace("function pool(a){const gs=ga(a);return[...(FG||[]),...oriContents()].filter(c=>gs.some(g=>allowed(c,g)))}","function pool(a){const gs=ga(a),tg=gb(targetGroup),scope=tg&&tg.area===a?[tg]:gs;return[...(FG||[]),...oriContents()].filter(c=>scope.some(g=>allowed(c,g)))}")
       .replace("function renderBag(){const base=pool(activeArea).filter(c=>source==='ALL'||c.component===source),se=$('v28subject'),ae=$('v28axis');","function renderBag(){const scoped=pool(activeArea),availableComponents=new Set(scoped.map(c=>c.component));if(source!=='ALL'&&!availableComponents.has(source))source='ALL';$('v28board')?.querySelectorAll('[data-src]').forEach(t=>{const s=t.dataset.src;t.hidden=s!=='ALL'&&!availableComponents.has(s);t.classList.toggle('on',s===source)});const base=scoped.filter(c=>source==='ALL'||c.component===source),se=$('v28subject'),ae=$('v28axis');")
@@ -39,6 +39,7 @@
       !phase2Source.includes('window.PCIPhase2V28=') ||
       !phase2Source.includes('pci-phase2-groups-rendered') ||
       !phase2Source.includes('scope=tg&&tg.area===a?[tg]:gs') ||
+      !phase2Source.includes("if(c.component==='FO')return hasFO(g)") ||
       !phase2Source.includes("renderGroups();renderBag();selectionBar()")
     ){
       throw new Error('No se pudo aplicar la integración V40 de Fase 2.');
