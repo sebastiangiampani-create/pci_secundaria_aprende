@@ -1,4 +1,24 @@
 (() => {
+  // V40 oculta el acceso visual a Reglas, pero el init base todavía enlaza
+  // el evento sobre #rulesBtn. Si el nodo no existe, init() se corta y Fase 2
+  // no termina de montar. Conservamos un ancla oculta para compatibilidad.
+  let rulesBtn=document.getElementById('rulesBtn');
+  if(!rulesBtn){
+    rulesBtn=document.createElement('button');
+    rulesBtn.id='rulesBtn';
+    rulesBtn.type='button';
+    rulesBtn.hidden=true;
+    rulesBtn.setAttribute('aria-hidden','true');
+    rulesBtn.style.display='none';
+    const printBtn=document.getElementById('printBtn');
+    if(printBtn?.parentElement) printBtn.parentElement.insertBefore(rulesBtn,printBtn);
+    else document.body.prepend(rulesBtn);
+  }else{
+    rulesBtn.hidden=true;
+    rulesBtn.setAttribute('aria-hidden','true');
+    rulesBtn.style.display='none';
+  }
+
   const modal=document.getElementById('rulesModal');
   if(!modal)return;
   const box=modal.querySelector('.modal-box');
