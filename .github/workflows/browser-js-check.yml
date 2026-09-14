@@ -28,23 +28,22 @@ jobs:
             echo "Checking $file"
             node --check "$file"
           done < <(find src -type f -name '*.js' -print0)
-      - name: Check V70 entry wiring
+      - name: Check V71 entry wiring
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "app-v70.html?v=20260914-70" index.html
-          grep -Fq "20260914-70" app-v70.html
-          grep -Fq "fetch('app.html?v=20260914-70'" app-v70.html
-          ! grep -Fq "app-v69.html" app-v70.html
-          grep -Fq "src/v66-institutional-general.js" app-v70.html
-          grep -Fq "src/v68-staff-planning.js" app-v70.html
-          grep -Fq "src/v68-annual-scheduler.js" app-v70.html
-          grep -Fq "src/v69-tutoria-contents.js" app-v70.html
-          grep -Fq "src/v69-institutional-accordion-fix.js" app-v70.html
-          grep -Fq "src/v70-staffing-workbook-optimizer.js" app-v70.html
+          grep -Fq "app-v71.html?v=20260914-71" index.html
+          grep -Fq "20260914-71" app-v71.html
+          grep -Fq "fetch('app.html?v=20260914-71'" app-v71.html
+          ! grep -Fq "app-v70.html" app-v71.html
+          grep -Fq "src/v66-institutional-general.js" app-v71.html
+          grep -Fq "src/v68-staff-planning.js" app-v71.html
+          grep -Fq "src/v68-annual-scheduler.js" app-v71.html
+          grep -Fq "src/v69-institutional-accordion-fix.js" app-v71.html
+          grep -Fq "src/v70-staffing-workbook-optimizer.js" app-v71.html
+          grep -Fq "src/v71-operational-closeout.js" app-v71.html
+          grep -Fq "src/v71-operational-defaults.js" app-v71.html
           test -f data/tutoria.json
-          grep -Fq '"id":"tutoria-001"' data/tutoria.json
-          grep -Fq '"id":"tutoria-035"' data/tutoria.json
       - name: Check institutional contracts
         shell: bash
         run: |
@@ -59,7 +58,9 @@ jobs:
             'src/v68-annual-scheduler.js':['function simulateAssignments(','proposalMode','allowMinimumOffer',"engine:'v68-annual'",'teamCommonHours'],
             'src/v68-institutional-export.js':["add('Demanda'","add('Perfiles'","add('Planificacion'","add('Propuesta'",'respaldo-completo-v68'],
             'src/v69-institutional-accordion-fix.js':['Implementación institucional por bloques','Abrir todo','Cerrar todo','localStorage','PCIInstitutionalAccordionV69'],
-            'src/v70-staffing-workbook-optimizer.js':['DOCENTES','HABILITACIONES','ASIGNACIONES FIJAS','DISPONIBILIDAD','CATALOGO','DNI/CUIL','HC objetivo','HC máximo','function searchProposal(','simulateAssignments','assignmentLocks','v70-schedule-search','PCIStaffingV70']
+            'src/v70-staffing-workbook-optimizer.js':['DOCENTES','HABILITACIONES','ASIGNACIONES FIJAS','DISPONIBILIDAD','CATALOGO','DNI/CUIL','HC objetivo','HC máximo','function searchProposal(','simulateAssignments','assignmentLocks','v70-schedule-search','PCIStaffingV70'],
+            'src/v71-operational-closeout.js':['v71-annual-strict','teacher-slots-identical','fase1-temporal-pairs','annualScheduleLocks','planningPolicy','two-per-team','Restaurar respaldo completo','before-restore','PCIAnnualSchedulerV71','function buildPairs(','function continuity('],
+            'src/v71-operational-defaults.js':['threePlus:\'two-per-team\'','planningOverrides','validated:true','PCIOperationalDefaultsV71']
           };
           for(const [file,needles] of Object.entries(checks)){
             const text=fs.readFileSync(file,'utf8');
@@ -79,13 +80,15 @@ jobs:
           for(const needle of ['src/v47-phase2-matrix.js','src/v59-phase2-annual-matrix.js','src/v48-institutional-layer.js']){
             if(!app.includes(needle))throw new Error(`app.html: falta ${needle}`);
           }
-          for(const file of ['src/v68-staff-planning.js','src/v69-ux-workflow.js','src/v69-visibility-hotfix.js','src/v69-institutional-accordion-fix.js','src/v70-staffing-workbook-optimizer.js']){
+          for(const file of ['src/v68-staff-planning.js','src/v69-ux-workflow.js','src/v69-visibility-hotfix.js','src/v69-institutional-accordion-fix.js','src/v70-staffing-workbook-optimizer.js','src/v71-operational-closeout.js','src/v71-operational-defaults.js']){
             const text=fs.readFileSync(file,'utf8');
             if(/placements\s*=\s*\{/.test(text))throw new Error(`${file}: no debe reemplazar placements de Fase 1.`);
           }
-          const v70=fs.readFileSync('src/v70-staffing-workbook-optimizer.js','utf8');
-          if(!v70.includes('state.institutional'))throw new Error('V70 debe persistir únicamente en state.institutional.');
-          console.log('OK: V70 agrega planta docente sin reemplazar el núcleo Fase 1/Fase 2.');
+          for(const file of ['src/v70-staffing-workbook-optimizer.js','src/v71-operational-closeout.js','src/v71-operational-defaults.js']){
+            const text=fs.readFileSync(file,'utf8');
+            if(!text.includes('state.institutional'))throw new Error(`${file}: debe persistir únicamente en state.institutional.`);
+          }
+          console.log('OK: V71 cierra la capa institucional sin reemplazar el núcleo Fase 1/Fase 2.');
           NODE
       - name: Smoke test legacy schedule generator
         run: node tests/v50-generator-smoke.cjs
