@@ -32,9 +32,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "app-v69.html?v=20260914-69b" index.html
-          grep -Fq "20260914-69b" app-v69.html
-          grep -Fq "fetch('app.html?v=20260914-69b'" app-v69.html
+          grep -Fq "app-v69.html?v=20260914-69c" index.html
+          grep -Fq "20260914-69c" app-v69.html
+          grep -Fq "fetch('app.html?v=20260914-69c'" app-v69.html
           ! grep -Fq "app-v68.html" app-v69.html
           grep -Fq "src/v66-institutional-general.js" app-v69.html
           grep -Fq "src/v68-staff-planning.js" app-v69.html
@@ -89,10 +89,10 @@ jobs:
             if(!imp.includes(needle))throw new Error(`Importación docente: falta ${needle}`);
           }
           const vis=fs.readFileSync('src/v69-visibility-hotfix.js','utf8');
-          for(const needle of ['Carga masiva por Excel','Descargar modelo Excel','Importar Excel / CSV','v64TeacherImport','v64TeacherFile','PCIVisibilityHotfixV69']){
+          for(const needle of ['Carga masiva por Excel','Descargar modelo Excel','Importar Excel / CSV','v64TeacherImport','v64TeacherFile','PCIVisibilityHotfixV69','dedupeControls','#v69ImportHero']){
             if(!vis.includes(needle))throw new Error(`Visibilidad Excel V69: falta ${needle}`);
           }
-          console.log('OK: V69 conserva Tutoría, navegación, acordeones, importación visible y salida apaisada.');
+          console.log('OK: V69 conserva Tutoría, navegación, acordeones, importación visible, sin controles Excel duplicados y salida apaisada.');
           NODE
       - name: Check protected PCI core remains wired
         shell: bash
