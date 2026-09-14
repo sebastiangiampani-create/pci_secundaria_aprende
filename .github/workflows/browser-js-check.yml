@@ -32,9 +32,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "app-v71.html?v=20260914-71b" index.html
-          grep -Fq "20260914-71b" app-v71.html
-          grep -Fq "fetch('app.html?v=20260914-71b'" app-v71.html
+          grep -Fq "app-v71.html?v=20260914-71c" index.html
+          grep -Fq "20260914-71c" app-v71.html
+          grep -Fq "fetch('app.html?v=20260914-71c'" app-v71.html
           ! grep -Fq "app-v70.html" app-v71.html
           ! grep -Fq "src/v69-tutoria-contents.js" app-v71.html
           grep -Fq "src/v66-institutional-general.js" app-v71.html
@@ -45,6 +45,7 @@ jobs:
           grep -Fq "src/v71-operational-closeout.js" app-v71.html
           grep -Fq "src/v71-operational-defaults.js" app-v71.html
           grep -Fq "src/v71-no-tutoria-contents.js" app-v71.html
+          grep -Fq "src/v71-lock-safety.js" app-v71.html
       - name: Check institutional contracts
         shell: bash
         run: |
@@ -61,8 +62,9 @@ jobs:
             'src/v69-institutional-accordion-fix.js':['Implementación institucional por bloques','Abrir todo','Cerrar todo','localStorage','PCIInstitutionalAccordionV69'],
             'src/v70-staffing-workbook-optimizer.js':['DOCENTES','HABILITACIONES','ASIGNACIONES FIJAS','DISPONIBILIDAD','CATALOGO','DNI/CUIL','HC objetivo','HC máximo','function searchProposal(','simulateAssignments','assignmentLocks','v70-schedule-search','PCIStaffingV70'],
             'src/v71-operational-closeout.js':['v71-annual-strict','teacher-slots-identical','fase1-temporal-pairs','annualScheduleLocks','planningPolicy','two-per-team','Restaurar respaldo completo','before-restore','PCIAnnualSchedulerV71','function buildPairs(','function continuity('],
-            'src/v71-operational-defaults.js':['threePlus:\'two-per-team\'','planningOverrides','validated:true','PCIOperationalDefaultsV71'],
-            'src/v71-no-tutoria-contents.js':['no levanta contenidos oficiales de Tutoría','Otros formatos pedagógicos','getAreaPool','PCINoTutoriaContentsV71']
+            'src/v71-operational-defaults.js':['threePlus:\'two-per-team\'','closedByV71:true','planningOverrides','validated:true','PCIOperationalDefaultsV71'],
+            'src/v71-no-tutoria-contents.js':['no levanta contenidos oficiales de Tutoría','Otros formatos pedagógicos','getAreaPool','PCINoTutoriaContentsV71'],
+            'src/v71-lock-safety.js':['annualScheduleLocks','function validate(assignments','teamMembers','simulateAssignments','PCIAnnualLockSafetyV71']
           };
           for(const [file,needles] of Object.entries(checks)){
             const text=fs.readFileSync(file,'utf8');
@@ -82,11 +84,11 @@ jobs:
           for(const needle of ['src/v47-phase2-matrix.js','src/v59-phase2-annual-matrix.js','src/v48-institutional-layer.js']){
             if(!app.includes(needle))throw new Error(`app.html: falta ${needle}`);
           }
-          for(const file of ['src/v68-staff-planning.js','src/v69-ux-workflow.js','src/v69-visibility-hotfix.js','src/v69-institutional-accordion-fix.js','src/v70-staffing-workbook-optimizer.js','src/v71-operational-closeout.js','src/v71-operational-defaults.js','src/v71-no-tutoria-contents.js']){
+          for(const file of ['src/v68-staff-planning.js','src/v69-ux-workflow.js','src/v69-visibility-hotfix.js','src/v69-institutional-accordion-fix.js','src/v70-staffing-workbook-optimizer.js','src/v71-operational-closeout.js','src/v71-operational-defaults.js','src/v71-no-tutoria-contents.js','src/v71-lock-safety.js']){
             const text=fs.readFileSync(file,'utf8');
             if(/placements\s*=\s*\{/.test(text))throw new Error(`${file}: no debe reemplazar placements de Fase 1.`);
           }
-          for(const file of ['src/v70-staffing-workbook-optimizer.js','src/v71-operational-closeout.js','src/v71-operational-defaults.js']){
+          for(const file of ['src/v70-staffing-workbook-optimizer.js','src/v71-operational-closeout.js','src/v71-operational-defaults.js','src/v71-lock-safety.js']){
             const text=fs.readFileSync(file,'utf8');
             if(!text.includes('state.institutional'))throw new Error(`${file}: debe persistir únicamente en state.institutional.`);
           }
