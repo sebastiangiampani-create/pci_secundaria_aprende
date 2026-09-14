@@ -40,11 +40,11 @@
     section.dataset.v69dAccordion='1';
     section.classList.add('v69d-accordion');
 
-    // Neutraliza por completo el acordeón anterior para evitar doble control/doble ocultamiento.
+    // Neutraliza el acordeón anterior. Se conserva el flag v69Collapsible=1
+    // para que el módulo anterior no vuelva a crear su propio botón.
     section.querySelectorAll(':scope > .v69-section-toggle').forEach(x=>x.remove());
     section.classList.remove('v69-collapsed','v69-collapsible');
-    delete section.dataset.v69Collapsible;
-    delete section.dataset.v69Key;
+    section.dataset.v69Collapsible='1';
     h.onclick=null;h.removeAttribute('title');
 
     const btn=document.createElement('button');
@@ -63,7 +63,8 @@
   }
   function ensureToolbar(){
     const host=$('v48InstitutionalContent');if(!host)return;
-    host.querySelectorAll(':scope > #v69AccordionToolbar,:scope > .v69-accordion-toolbar').forEach(x=>x.remove());
+    // El toolbar viejo permanece oculto para que v69-ux no intente recrearlo.
+    const old=$('v69AccordionToolbar');if(old)old.classList.add('v69d-superseded');
     let bar=$('v69dAccordionToolbar');
     if(!bar){
       bar=document.createElement('div');bar.id='v69dAccordionToolbar';bar.className='v69d-accordion-toolbar';
@@ -85,6 +86,7 @@
       ensureToolbar();
       dedupeImportActions();
       sections().forEach(prepareSection);
+      const old=$('v69AccordionToolbar');if(old)old.classList.add('v69d-superseded');
     }finally{rendering=false}
   }
   function schedule(){clearTimeout(timer);timer=setTimeout(refresh,70)}
@@ -105,6 +107,7 @@
 
   const style=document.createElement('style');
   style.textContent=`
+    #v69AccordionToolbar.v69d-superseded{display:none!important}
     .v69d-accordion-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;margin:12px 0;border:1px solid var(--line);border-radius:14px;background:linear-gradient(135deg,#f6f9fc,#eef5f8);box-shadow:0 4px 14px rgba(18,57,92,.05)}
     .v69d-accordion-toolbar strong{display:block;font-size:.72rem;color:var(--ink)}
     .v69d-accordion-toolbar span{display:block;margin-top:2px;font-size:.56rem;color:var(--muted)}
