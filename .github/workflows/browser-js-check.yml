@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/v48-institucional
+      - feature/v66-institucional-general
   pull_request:
   workflow_dispatch:
 
@@ -26,12 +27,14 @@ jobs:
             echo "Checking $file"
             node --check "$file"
           done < <(find src -type f -name '*.js' -print0)
-      - name: Check V65 entry wiring
+      - name: Check V67 entry wiring
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "app-v65.html?v=20260913-65" index.html
-          grep -Fq "20260913-65" app-v65.html
+          grep -Fq "app-v67.html?v=20260913-67" index.html
+          grep -Fq "20260913-67" app-v67.html
+          grep -Fq "src/v66-institutional-general.js" app-v66.html
+          grep -Fq "src/v67-institutional-export.js" app-v67.html
           grep -Fq "src/v48-institutional-layer.js" app.html
           grep -Fq "src/v48-phase2-institutional-content.js" app.html
           grep -Fq "src/v57-custom-divisions.js" app.html
@@ -61,7 +64,9 @@ jobs:
             'src/v59-phase2-annual-matrix.js':['v59-term-pair','v59-annual-cell','rangeLabel','mergePair','C${a}–C${b} · anual'],
             'src/v64-teacher-import.js':['Descargar plantilla Excel','Subir Excel / CSV','ID instancia','Docente','Email docente','XLSX'],
             'src/v65-annual-offer.js':['offerAnnualPct','Porcentaje elegido por la escuela','Usar mínimo','minimumOutside=team+explicit','maxOutside=f','selected===null'],
-            'src/v65-annual-scheduler.js':['Una única grilla para todo el año','annualScheduleVersions','v65-annual','s1','s2','Generar horario anual']
+            'src/v65-annual-scheduler.js':['Una única grilla para todo el año','annualScheduleVersions','v65-annual','s1','s2','Generar horario anual','Imprimir horarios'],
+            'src/v66-institutional-general.js':['Implementación institucional general','todos los PCI seleccionados','docente existe una sola vez','allImplementationRows','openInstitutionalGeneral','filterOrientation'],
+            'src/v67-institutional-export.js':['Descargar Excel institucional','Imprimir implementación','Descargar respaldo JSON','Asignaciones','Docentes','Disponibilidad','Horario anual']
           };
           for(const [file,needles] of Object.entries(checks)){
             const text=fs.readFileSync(file,'utf8');
