@@ -32,9 +32,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "app-v71.html?v=20260914-71c" index.html
-          grep -Fq "20260914-71c" app-v71.html
-          grep -Fq "fetch('app.html?v=20260914-71c'" app-v71.html
+          grep -Fq "app-v71.html?v=20260914-71d" index.html
+          grep -Fq "20260914-71d" app-v71.html
+          grep -Fq "fetch('app.html?v=20260914-71d'" app-v71.html
           ! grep -Fq "app-v70.html" app-v71.html
           ! grep -Fq "src/v69-tutoria-contents.js" app-v71.html
           grep -Fq "src/v66-institutional-general.js" app-v71.html
@@ -73,6 +73,19 @@ jobs:
               console.log(`OK ${file}: ${needle}`);
             }
           }
+          NODE
+      - name: Check institutional mutation loop regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const runtime=fs.readFileSync('src/v68-runtime-fix.js','utf8');
+          if(!runtime.includes("if(el&&el.textContent!==value)el.textContent=value"))throw new Error('v68-runtime-fix debe evitar escrituras textContent autorreferentes.');
+          if(/forEach\(x=>x\.textContent='Extra-plan'\)/.test(runtime))throw new Error('Regresion: escritura incondicional Extra-plan reactiva MutationObserver.');
+          const visibility=fs.readFileSync('src/v69-visibility-hotfix.js','utf8');
+          if(visibility.includes("querySelectorAll('#v69ImportHero').forEach(el=>el.remove())"))throw new Error('Regresion: remover v69ImportHero reactiva el ciclo legacy.');
+          console.log('OK: protecciones anti-loop institucional activas.');
           NODE
       - name: Check protected PCI core remains wired
         shell: bash
