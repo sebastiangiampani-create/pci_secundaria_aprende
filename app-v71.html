@@ -11,15 +11,15 @@
 <script>
 (async()=>{
   try{
-    const response=await fetch('app.html?v=20260914-71f',{cache:'no-store'});
+    const response=await fetch('app.html?v=20260914-71g',{cache:'no-store'});
     if(!response.ok)throw new Error('No se pudo cargar la base estable de la aplicación.');
     let html=await response.text();
-    html=html.replace("const VERSION='20260912-59';","const VERSION='20260914-71f';");
+    html=html.replace("const VERSION='20260912-59';","const VERSION='20260914-71g';");
     html=html.replace(
       "'src/v55-contiguous-area-blocks.js','src/v56-offer-model.js'",
-      "'src/v55-contiguous-area-blocks.js','src/v56-offer-model.js','src/v60-reconciliation.js','src/v60-phase2-print.js','src/v60-availability-preferences.js','src/v61-schedule-optimizer.js','src/v61-schedule-print.js','src/v62-schedule-locks.js','src/v63-offer-model.js','src/v63-offer-runtime-fix.js','src/v64-teacher-import.js','src/v65-annual-offer.js','src/v65-annual-scheduler.js','src/v66-institutional-general.js','src/v68-staff-planning.js','src/v68-annual-scheduler.js','src/v68-institutional-export.js','src/v68-runtime-fix.js','src/v69-ux-workflow.js','src/v69-visibility-hotfix.js','src/v69-institutional-accordion-fix.js','src/v70-staffing-workbook-optimizer.js','src/v71-operational-closeout.js','src/v71-operational-defaults.js','src/v71-no-tutoria-contents.js','src/v71-lock-safety.js'"
+      "'src/v55-contiguous-area-blocks.js','src/v56-offer-model.js','src/v60-reconciliation.js','src/v60-phase2-print.js','src/v60-availability-preferences.js','src/v61-schedule-optimizer.js','src/v61-schedule-print.js','src/v62-schedule-locks.js','src/v63-offer-model.js','src/v63-offer-runtime-fix.js','src/v64-teacher-import.js','src/v65-annual-offer.js','src/v65-annual-scheduler.js','src/v66-institutional-general.js','src/v68-staff-planning.js','src/v68-annual-scheduler.js','src/v68-institutional-export.js','src/v68-runtime-fix.js','src/v69-ux-workflow.js','src/v69-visibility-hotfix.js','src/v69-institutional-accordion-fix.js','src/v70-staffing-workbook-optimizer.js','src/v71-operational-closeout.js','src/v71-operational-defaults.js','src/v71-no-tutoria-contents.js','src/v71-lock-safety.js','src/v71-mobile-responsive-fix.js'"
     );
-    html=html.replace('data/materias-v2.json?v=20260912-59','data/materias-v2.json?v=20260914-71f');
+    html=html.replace('data/materias-v2.json?v=20260912-59','data/materias-v2.json?v=20260914-71g');
     html=html.replace(
       'let html=htmlRaw;',
       'let html=htmlRaw;\n    html=html.replace("<title>PCI Secundaria Aprende V2</title>","<title>PCI Secundaria Aprende V71</title>");'
