@@ -40,8 +40,11 @@
     section.dataset.v69dAccordion='1';
     section.classList.add('v69d-accordion');
 
-    // Neutraliza el acordeón anterior para evitar doble control/doble click.
+    // Neutraliza por completo el acordeón anterior para evitar doble control/doble ocultamiento.
     section.querySelectorAll(':scope > .v69-section-toggle').forEach(x=>x.remove());
+    section.classList.remove('v69-collapsed','v69-collapsible');
+    delete section.dataset.v69Collapsible;
+    delete section.dataset.v69Key;
     h.onclick=null;h.removeAttribute('title');
 
     const btn=document.createElement('button');
@@ -69,7 +72,6 @@
     if(bar.parentElement!==host)host.prepend(bar);
   }
   function dedupeImportActions(){
-    // La carga masiva queda en un único acceso destacado: el hotfix visible.
     document.querySelectorAll('#v69ImportHero').forEach(x=>x.remove());
     const pinned=[...document.querySelectorAll('#v69ExcelPinned')];
     pinned.slice(1).forEach(x=>x.remove());
