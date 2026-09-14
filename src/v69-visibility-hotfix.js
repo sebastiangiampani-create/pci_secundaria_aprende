@@ -8,7 +8,13 @@
   }
 
   function dedupeControls(){
-    document.querySelectorAll('#v69ImportHero').forEach(el=>el.remove());
+    // V71d: el control legacy debe permanecer en el DOM (oculto) para que
+    // v69-ux-workflow no lo recree en cada MutationObserver. Removerlo aquí
+    // generaba el ciclo remove -> recreate -> mutation -> remove.
+    document.querySelectorAll('#v69ImportHero').forEach(el=>{
+      el.classList.add('v71d-legacy-import-hidden');
+      el.setAttribute('aria-hidden','true');
+    });
     const pinned=[...document.querySelectorAll('#v69ExcelPinned')];
     pinned.slice(1).forEach(el=>el.remove());
     const section=$('v64TeacherImport');
@@ -21,11 +27,15 @@
   function showSection(){
     const section=$('v64TeacherImport');
     if(!section)return false;
-    section.classList.remove('v69-collapsed');
-    const toggle=section.querySelector(':scope > .v69-section-toggle');
-    if(toggle){
-      toggle.textContent='▾ Ocultar';
-      toggle.setAttribute('aria-expanded','true');
+    // El acordeón definitivo V69d/V71 administra su propio estado.
+    // Solo abrimos la clase legacy cuando el acordeón nuevo todavía no existe.
+    if(!section.dataset.v69dAccordion){
+      section.classList.remove('v69-collapsed');
+      const toggle=section.querySelector(':scope > .v69-section-toggle');
+      if(toggle){
+        toggle.textContent='▾ Ocultar';
+        toggle.setAttribute('aria-expanded','true');
+      }
     }
     dedupeControls();
     return true;
@@ -59,10 +69,18 @@
 
   function ensureImportSection(){
     if(!visibleInstitutional())return;
-    try{importer()?.decorate?.()}catch(e){console.warn('V69 Excel import decorate',e)}
+    const section=$('v64TeacherImport');
+    // V71d: decorate únicamente cuando todavía no existe la sección.
+    // Evita reconstrucciones redundantes disparadas por observadores del mismo host.
+    if(!section){
+      try{importer()?.decorate?.()}catch(e){console.warn('V69 Excel import decorate',e)}
+    }
     dedupeControls();
     if(showSection())return;
-    setTimeout(()=>{try{importer()?.decorate?.()}catch{};dedupeControls();showSection()},120);
+    setTimeout(()=>{
+      if(!$('v64TeacherImport')){try{importer()?.decorate?.()}catch{}}
+      dedupeControls();showSection();
+    },120);
   }
 
   function openImport(){
@@ -117,6 +135,7 @@
 
   const style=document.createElement('style');
   style.textContent=`
+    #v69ImportHero.v71d-legacy-import-hidden{display:none!important}
     .v69-excel-pinned{display:flex;align-items:center;justify-content:space-between;gap:14px;flex:1 1 100%;padding:12px 14px;border:1px solid #a9d6cf;border-radius:13px;background:linear-gradient(135deg,#f7fffd,#edf8f7)}
     .v69-excel-pinned strong{display:block;font-size:.72rem;color:var(--ink)}
     .v69-excel-pinned small{display:block;margin-top:3px;max-width:760px;font-size:.56rem;line-height:1.4;color:var(--muted)}
