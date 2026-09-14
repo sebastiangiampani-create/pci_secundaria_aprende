@@ -32,9 +32,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "app-v69.html?v=20260914-69" index.html
-          grep -Fq "20260914-69" app-v69.html
-          grep -Fq "fetch('app.html?v=20260914-69'" app-v69.html
+          grep -Fq "app-v69.html?v=20260914-69b" index.html
+          grep -Fq "20260914-69b" app-v69.html
+          grep -Fq "fetch('app.html?v=20260914-69b'" app-v69.html
           ! grep -Fq "app-v68.html" app-v69.html
           grep -Fq "src/v66-institutional-general.js" app-v69.html
           grep -Fq "src/v68-staff-planning.js" app-v69.html
@@ -43,6 +43,7 @@ jobs:
           grep -Fq "src/v68-runtime-fix.js" app-v69.html
           grep -Fq "src/v69-tutoria-contents.js" app-v69.html
           grep -Fq "src/v69-ux-workflow.js" app-v69.html
+          grep -Fq "src/v69-visibility-hotfix.js" app-v69.html
           test -f data/tutoria.json
           grep -Fq '"id":"tutoria-001"' data/tutoria.json
           grep -Fq '"id":"tutoria-035"' data/tutoria.json
@@ -87,7 +88,11 @@ jobs:
           for(const needle of ['Descargar plantilla Excel','Subir Excel / CSV','downloadTemplate']){
             if(!imp.includes(needle))throw new Error(`Importación docente: falta ${needle}`);
           }
-          console.log('OK: V69 conserva Tutoría oficial, navegación, acordeones, importación y salida apaisada.');
+          const vis=fs.readFileSync('src/v69-visibility-hotfix.js','utf8');
+          for(const needle of ['Carga masiva por Excel','Descargar modelo Excel','Importar Excel / CSV','v64TeacherImport','v64TeacherFile','PCIVisibilityHotfixV69']){
+            if(!vis.includes(needle))throw new Error(`Visibilidad Excel V69: falta ${needle}`);
+          }
+          console.log('OK: V69 conserva Tutoría, navegación, acordeones, importación visible y salida apaisada.');
           NODE
       - name: Check protected PCI core remains wired
         shell: bash
@@ -104,6 +109,8 @@ jobs:
           if(/placements\s*=\s*\{/.test(staff))throw new Error('V68 no debe reemplazar placements de Fase 1.');
           const ux=fs.readFileSync('src/v69-ux-workflow.js','utf8');
           if(/placements\s*=\s*\{/.test(ux))throw new Error('V69 UX no debe reemplazar placements de Fase 1.');
+          const vis=fs.readFileSync('src/v69-visibility-hotfix.js','utf8');
+          if(/placements\s*=\s*\{/.test(vis))throw new Error('V69 visibility hotfix no debe reemplazar placements de Fase 1.');
           console.log('OK: V69 agrega UX sin reemplazar el núcleo PCI.');
           NODE
       - name: Smoke test legacy schedule generator
