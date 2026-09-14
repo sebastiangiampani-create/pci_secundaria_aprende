@@ -7,6 +7,17 @@
     return !!$('institutional')?.classList.contains('active');
   }
 
+  function dedupeControls(){
+    document.querySelectorAll('#v69ImportHero').forEach(el=>el.remove());
+    const pinned=[...document.querySelectorAll('#v69ExcelPinned')];
+    pinned.slice(1).forEach(el=>el.remove());
+    const section=$('v64TeacherImport');
+    if(section){
+      const actions=section.querySelector('.v64-import-actions');
+      if(actions)actions.style.display='none';
+    }
+  }
+
   function showSection(){
     const section=$('v64TeacherImport');
     if(!section)return false;
@@ -16,12 +27,14 @@
       toggle.textContent='▾ Ocultar';
       toggle.setAttribute('aria-expanded','true');
     }
+    dedupeControls();
     return true;
   }
 
   function ensureHeroActions(){
     const screen=$('institutional');
     if(!screen)return;
+    dedupeControls();
     const hero=screen.querySelector('.hero');
     if(!hero)return;
     let actions=hero.querySelector('.v48-hero-actions');
@@ -47,8 +60,9 @@
   function ensureImportSection(){
     if(!visibleInstitutional())return;
     try{importer()?.decorate?.()}catch(e){console.warn('V69 Excel import decorate',e)}
+    dedupeControls();
     if(showSection())return;
-    setTimeout(()=>{try{importer()?.decorate?.()}catch{};showSection()},120);
+    setTimeout(()=>{try{importer()?.decorate?.()}catch{};dedupeControls();showSection()},120);
   }
 
   function openImport(){
@@ -82,6 +96,7 @@
 
   function refresh(){
     bindObservers();
+    dedupeControls();
     ensureHeroActions();
     if(visibleInstitutional())ensureImportSection();
   }
@@ -106,9 +121,10 @@
     .v69-excel-pinned strong{display:block;font-size:.72rem;color:var(--ink)}
     .v69-excel-pinned small{display:block;margin-top:3px;max-width:760px;font-size:.56rem;line-height:1.4;color:var(--muted)}
     .v69-excel-pinned-actions{display:flex;gap:7px;flex-wrap:wrap;flex:0 0 auto}
+    #v64TeacherImport .v64-import-actions{display:none!important}
     @media(max-width:820px){.v69-excel-pinned{align-items:flex-start;flex-direction:column}.v69-excel-pinned-actions{width:100%}.v69-excel-pinned-actions .btn{flex:1 1 180px}}
   `;
   document.head.appendChild(style);
 
-  window.PCIVisibilityHotfixV69={refresh,openImport,ensureImportSection,ensureHeroActions};
+  window.PCIVisibilityHotfixV69={refresh,openImport,ensureImportSection,ensureHeroActions,dedupeControls};
 })();
