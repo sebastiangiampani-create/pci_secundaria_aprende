@@ -15,11 +15,20 @@
     window.PCIAnnualSchedulerV65=api;wrapped=true;
   }
 
+  function setText(el,value){if(el&&el.textContent!==value)el.textContent=value}
+  function setAttr(el,name,value){if(el&&el.getAttribute(name)!==value)el.setAttribute(name,value)}
+
   function labels(){
-    const sub=document.querySelector('#offer .custom-box .subhead');if(sub)sub.textContent='Bilingüe · Extracurricular · otro espacio extra-plan';
-    const name=document.getElementById('customName');if(name)name.placeholder='Nombre de la materia / espacio extra-plan';
-    const add=document.getElementById('addCustom');if(add)add.textContent='Agregar espacio extra-plan';
-    document.querySelectorAll('#v48InstitutionalContent .v48-origin.custom').forEach(x=>x.textContent='Extra-plan');
+    // V71d: este módulo observa childList en todo el documento. Reescribir
+    // textContent aunque no cambie reemplaza nodos de texto y vuelve a disparar
+    // el MutationObserver. Solo mutamos cuando el valor realmente cambia.
+    const sub=document.querySelector('#offer .custom-box .subhead');
+    setText(sub,'Bilingüe · Extracurricular · otro espacio extra-plan');
+    const name=document.getElementById('customName');
+    setAttr(name,'placeholder','Nombre de la materia / espacio extra-plan');
+    const add=document.getElementById('addCustom');
+    setText(add,'Agregar espacio extra-plan');
+    document.querySelectorAll('#v48InstitutionalContent .v48-origin.custom').forEach(x=>setText(x,'Extra-plan'));
   }
 
   function syncProfileFields(){
