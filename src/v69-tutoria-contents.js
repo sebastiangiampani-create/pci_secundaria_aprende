@@ -1,6 +1,6 @@
 (() => {
   const API=()=>window.PCIPhase2V28||null;
-  const SOURCE='https://raw.githubusercontent.com/sebastiangiampani-create/Matriz-PCI-Completa/main/data/tutoria.json';
+  const SOURCE='data/tutoria.json';
   let catalog=null,loading=null,observer=null,timer=null,selected=new Set();
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
