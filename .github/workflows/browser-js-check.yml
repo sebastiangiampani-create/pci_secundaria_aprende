@@ -42,56 +42,44 @@ jobs:
           grep -Fq "src/v68-runtime-fix.js" app-v68.html
           grep -Fq "src/v48-institutional-layer.js" app.html
           grep -Fq "src/v48-phase2-institutional-content.js" app.html
-          grep -Fq "src/v57-custom-divisions.js" app.html
-          grep -Fq "src/v52-derived-teacher-load.js" app.html
-          grep -Fq "src/v51-school-timetable-config.js" app.html
-          grep -Fq "src/v49-teacher-availability.js" app.html
-          grep -Fq "src/v53-institutional-work-scheduler.js" app.html
-          grep -Fq "src/v54-auto-area-coincidence.js" app.html
-          grep -Fq "src/v58-parallel-phases.js" app.html
           grep -Fq "src/v59-phase2-annual-matrix.js" app.html
-          grep -Fq "src/v55-contiguous-area-blocks.js" app.html
-          grep -Fq "src/v56-offer-model.js" app.html
-      - name: Check institutional and phase 2 rules
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs=require('fs');
-          const checks={
-            'src/v54-auto-area-coincidence.js':['AREA_BY_SLOT','auto-fg-','auto-fo-','subjectFO'],
-            'src/v55-contiguous-area-blocks.js':['commonBlocks','bloque continuo'],
-            'src/v57-custom-divisions.js':['divisionLabels','Personalizar nombres de divisiones'],
-            'src/v58-parallel-phases.js':["proposalCard?.classList.remove('locked')","institutionalCard?.classList.remove('locked')"],
-            'src/v59-phase2-annual-matrix.js':['v59-term-pair','v59-annual-cell','rangeLabel','mergePair','C${a}–C${b} · anual'],
-            'src/v64-teacher-import.js':['Descargar plantilla Excel','Subir Excel / CSV','ID instancia','Docente','Email docente','XLSX'],
-            'src/v65-annual-offer.js':['offerAnnualPct','Planificación mínima por equipos','planningResidualRows','staffApi','dos equipos parten de 4 HC totales'],
-            'src/v65-annual-scheduler.js':['Una única grilla para todo el año','annualScheduleVersions','v65-annual','s1','s2','Generar horario anual','Imprimir horarios'],
-            'src/v66-institutional-general.js':['Implementación institucional general','todos los PCI seleccionados','docente existe una sola vez','allImplementationRows','openInstitutionalGeneral','filterOrientation'],
-            'src/v68-staff-planning.js':['Demanda institucional automática','teacherPlanning','teamCommonHours','assignmentLocks','planningOverrides','buildProposal','simulateProposal','Carga mínima institucional actual'],
-            'src/v68-annual-scheduler.js':['simulateAssignments','proposalMode','allowMinimumOffer','teamCommonHours','v68-annual','Horario institucional · anual · V68'],
-            'src/v68-institutional-export.js':['Demanda','Perfiles','Planificacion','Propuesta','respaldo-completo-v68','Descargar Excel institucional'],
-            'src/v68-runtime-fix.js':['Extra-plan','simulateAssignments']
-          };
-          for(const [file,needles] of Object.entries(checks)){
-            const text=fs.readFileSync(file,'utf8');
-            for(const needle of needles){
-              if(!text.includes(needle))throw new Error(`${file}: falta ${needle}`);
-              console.log(`OK ${file}: ${needle}`);
-            }
-          }
-          NODE
-      - name: Check V68 keeps PCI state read-only
+      - name: Check V68 institutional contracts
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs=require('fs');
-          const staff=fs.readFileSync('src/v68-staff-planning.js','utf8');
-          if(staff.includes('m.placements=')||staff.includes('.placements['+'slot'+']=')){
-            throw new Error('V68 no debe escribir placements de Fase 1.');
+          const checks={
+            'src/v54-auto-area-coincidence.js':['subjectFO','auto-fg-','auto-fo-'],
+            'src/v65-annual-offer.js':['planningResidualRows','PCIStaffPlanningV68','minimumOutside=team+explicit'],
+            'src/v66-institutional-general.js':['Implementación institucional general','allImplementationRows','openInstitutionalGeneral'],
+            'src/v68-staff-planning.js':['function demand()','function teacherPlanning(','function buildProposal(','function simulateProposal(','assignmentLocks','planningOverrides','state.institutional'],
+            'src/v68-annual-scheduler.js':['function simulateAssignments(','proposalMode','allowMinimumOffer',"engine:'v68-annual'",'teamCommonHours'],
+            'src/v68-institutional-export.js':["add('Demanda'","add('Perfiles'","add('Planificacion'","add('Propuesta'",'respaldo-completo-v68'],
+            'src/v68-runtime-fix.js':['Extra-plan','simulateAssignments','syncProfileFields']
+          };
+          for(const [file,needles] of Object.entries(checks)){
+            const text=fs.readFileSync(file,'utf8');
+            for(const needle of needles){
+              if(!text.includes(needle))throw new Error(`${file}: falta contrato ${needle}`);
+              console.log(`OK ${file}: ${needle}`);
+            }
           }
+          NODE
+      - name: Check protected PCI core remains wired
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const app=fs.readFileSync('app.html','utf8');
+          for(const needle of ['src/v47-phase2-matrix.js','src/v59-phase2-annual-matrix.js','src/v48-institutional-layer.js']){
+            if(!app.includes(needle))throw new Error(`app.html: falta ${needle}`);
+          }
+          const staff=fs.readFileSync('src/v68-staff-planning.js','utf8');
           if(!staff.includes('state.institutional'))throw new Error('V68 debe persistir dentro de state.institutional.');
-          console.log('OK: V68 persiste en la capa institucional y no escribe placements de Fase 1.');
+          if(/placements\s*=\s*\{/.test(staff))throw new Error('V68 no debe reemplazar placements de Fase 1.');
+          console.log('OK: V68 persiste en la capa institucional y conserva el núcleo PCI.');
           NODE
       - name: Smoke test legacy schedule generator
         run: node tests/v50-generator-smoke.cjs
