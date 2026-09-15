@@ -1,7 +1,7 @@
 (() => {
   const $=id=>document.getElementById(id);
   const pci=()=>window.PCIInstitutionalV48||null;
-  let timer=null,observer=null,observedHost=null;
+  let timer=null,observer=null,observedHost=null,importing=false;
 
   function root(){
     state.institutional=state.institutional||{};
@@ -78,38 +78,76 @@
     return t;
   }
 
-  function findRow(raw){
+  function rowIndex(){
+    const byId=new Map(),byKey=new Map();
+    for(const row of rows()){
+      byId.set(String(row.instanceId),row);
+      const key=`${norm(row.orientation)}|${norm(row.course)}|${norm(row.name)}`;
+      if(!byKey.has(key))byKey.set(key,[]);
+      byKey.get(key).push(row);
+    }
+    return{byId,byKey};
+  }
+  function findRow(raw,index){
     const id=String(raw.__ID||'').trim();
-    if(id){const exact=rows().find(r=>String(r.instanceId)===id);if(exact)return exact}
-    const o=norm(raw['Orientación']),c=norm(raw['Curso']),m=norm(raw['Materia / espacio']);
-    const hits=rows().filter(r=>(!o||norm(r.orientation)===o)&&(!c||norm(r.course)===c)&&(!m||norm(r.name)===m));
+    if(id&&index.byId.has(id))return index.byId.get(id);
+    const key=`${norm(raw['Orientación'])}|${norm(raw['Curso'])}|${norm(raw['Materia / espacio'])}`;
+    const hits=index.byKey.get(key)||[];
     return hits.length===1?hits[0]:null;
   }
 
-  async function importSimpleWorkbook(file){
+  function setImportUi(text,kind='note'){
     const result=$('v71SimpleExcelResult');
-    if(result)result.innerHTML='<div class="v71-simple-note">Leyendo Excel…</div>';
+    if(result)result.innerHTML=`<div class="v71-simple-${kind}">${text}</div>`;
+  }
+
+  async function importSimpleWorkbook(file){
+    if(importing)return;
+    importing=true;
+    const input=document.querySelector('input[data-v71-simple-file]');
+    if(input)input.disabled=true;
+    setImportUi('Leyendo Excel…');
     try{
       const XLSX=await loadXLSX(),buf=await file.arrayBuffer(),wb=XLSX.read(buf,{type:'array'});
       const sheet=wb.Sheets[wb.SheetNames[0]];
       const data=XLSX.utils.sheet_to_json(sheet,{defval:''});
+      const index=rowIndex();
       let assigned=0,created=0,skipped=0;
       const r=root();
+
+      // V71j: toda la carga se resuelve en memoria. No se renderiza Gestión
+      // Institucional fila por fila ni al final del lote.
       for(const raw of data){
-        const row=findRow(raw);if(!row){skipped++;continue}
+        const row=findRow(raw,index);if(!row){skipped++;continue}
         const name=String(raw['Docente']||'').trim(),email=String(raw['Email']||'').trim();
         if(!name&&!email)continue;
         const before=findTeacher(name,email),t=ensureTeacher(name,email);if(!t){skipped++;continue}
         if(!before)created++;
         r.assignments[row.instanceId]=t.id;assigned++;
       }
+
       save();
-      window.PCIAutoAreaCoincidenceV54?.deriveTeams?.();
-      pci()?.renderInstitutional?.();
-      setTimeout(()=>{decorate();window.PCIStaffPlanningV68?.decorate?.();window.PCIAnnualSchedulerV68?.render?.()},250);
-      if(result)result.innerHTML=`<div class="v71-simple-ok"><strong>${assigned}</strong> asignaciones cargadas · <strong>${created}</strong> docentes nuevos${skipped?` · ${skipped} filas no identificadas`:''}.</div>`;
+
+      // Derivar equipos una sola vez y fuera del ciclo de importación.
+      // Evitamos pci.renderInstitutional(), que reconstruía toda la pantalla y
+      // disparaba simultáneamente los MutationObserver de V68/V69/V70.
+      try{window.PCIAutoAreaCoincidenceV54?.deriveTeams?.()}catch(e){console.warn('V71j deriveTeams',e)}
+
+      setImportUi(`<strong>${assigned}</strong> asignaciones cargadas · <strong>${created}</strong> docentes nuevos${skipped?` · ${skipped} filas no identificadas`:''}.<br><span>La carga quedó guardada. Al entrar en los bloques de docentes/horarios se actualizarán con esta planta.</span>`,'ok');
       toast(`Asignación docente importada: ${assigned} materias actualizadas.`);
-    }catch(e){if(result)result.innerHTML=`<div class="v71-simple-error">${String(e.message||e)}</div>`;toast(e.message||String(e),true)}
+
+      // Refrescos puntuales, diferidos y sin reconstruir el contenedor institucional.
+      setTimeout(()=>{
+        try{window.PCIStaffPlanningV68?.decorate?.()}catch(e){console.warn('V71j staff refresh',e)}
+        try{window.PCIAnnualSchedulerV68?.render?.()}catch(e){console.warn('V71j schedule refresh',e)}
+      },500);
+    }catch(e){
+      setImportUi(String(e.message||e),'error');
+      toast(e.message||String(e),true);
+    }finally{
+      importing=false;
+      if(input){input.disabled=false;input.value=''}
+    }
   }
 
   function render(){
@@ -138,8 +176,8 @@
     section.querySelector('input[data-v71-simple-file]').onchange=e=>{const f=e.target.files?.[0];if(f)importSimpleWorkbook(f)};
   }
 
-  function decorate(){render()}
-  function refresh(){clearTimeout(timer);timer=setTimeout(decorate,70)}
+  function decorate(){if(!importing)render()}
+  function refresh(){if(importing)return;clearTimeout(timer);timer=setTimeout(decorate,70)}
   function bind(){
     const host=$('v48InstitutionalContent');if(!host||host===observedHost)return;
     observer?.disconnect();observedHost=host;observer=new MutationObserver(refresh);observer.observe(host,{childList:true,subtree:false});
@@ -154,7 +192,7 @@
     .v71-simple-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .v71-simple-file{cursor:pointer}
     .v71-simple-example{margin-top:10px;padding:9px 10px;border-radius:10px;background:var(--band);font-size:.58rem;line-height:1.45}.v71-simple-example strong{display:block}.v71-simple-example span{color:var(--muted)}
-    .v71-simple-note,.v71-simple-ok,.v71-simple-error{margin-top:10px;padding:9px 10px;border-radius:10px;font-size:.58rem}.v71-simple-ok{background:var(--ok-soft);color:var(--ok)}.v71-simple-error{background:var(--danger-soft);color:var(--danger)}
+    .v71-simple-note,.v71-simple-ok,.v71-simple-error{margin-top:10px;padding:9px 10px;border-radius:10px;font-size:.58rem;line-height:1.45}.v71-simple-ok{background:var(--ok-soft);color:var(--ok)}.v71-simple-ok span{color:inherit;opacity:.85}.v71-simple-error{background:var(--danger-soft);color:var(--danger)}
     @media(max-width:780px){.v71-simple-actions{flex-direction:column}.v71-simple-actions>.btn,.v71-simple-actions>.v71-simple-file{width:100%;box-sizing:border-box;justify-content:center;text-align:center}}
   `;document.head.appendChild(style);
   window.PCISimpleAssignmentExcelV71={downloadSimpleWorkbook,importSimpleWorkbook,render};
