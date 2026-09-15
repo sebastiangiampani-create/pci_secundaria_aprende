@@ -1,6 +1,6 @@
 (() => {
   const $=id=>document.getElementById(id);
-  let rendering=false;
+  let rendering=false,entryObserver=null;
 
   function root(){
     state.institutional=state.institutional||{};
@@ -15,9 +15,7 @@
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const uid=()=>`doc-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 
-  function assignmentCount(tid){
-    return Object.values(root().assignments).filter(id=>id===tid).length;
-  }
+  function assignmentCount(tid){return Object.values(root().assignments).filter(id=>id===tid).length}
 
   function deleteTeacher(tid){
     const r=root(),t=r.teachers[tid];if(!t)return;
@@ -30,12 +28,8 @@
     if(r.availabilityPreferences)delete r.availabilityPreferences[tid];
     if(r.planningOverrides)delete r.planningOverrides[tid];
     if(r.outsideWork)for(const [id,x] of Object.entries(r.outsideWork))if(x?.teacherId===tid)delete r.outsideWork[id];
-    // Un horario armado con un docente eliminado ya no es confiable.
     r.annualScheduleVersions=[];
-    save();
-    try{window.PCIAutoAreaCoincidenceV54?.deriveTeams?.()}catch{}
-    render();
-    toast(`${t.name} fue eliminado de Gestión Institucional.`);
+    save();render();ensureEntryButtons();toast(`${t.name} fue eliminado de Gestión Institucional.`);
   }
 
   function addTeacher(){
@@ -44,7 +38,7 @@
     if(!name)return toast('Escribí el nombre del docente.',true);
     const exists=teachers().find(t=>String(t.name).trim().toLowerCase()===name.toLowerCase()||(email&&String(t.email||'').trim().toLowerCase()===email.toLowerCase()));
     if(exists)return toast('Ese docente ya está cargado.',true);
-    const id=uid();root().teachers[id]={id,name,email};save();render();toast('Docente agregado.');
+    const id=uid();root().teachers[id]={id,name,email};save();render();ensureEntryButtons();toast('Docente agregado.');
   }
 
   function teacherHtml(){
@@ -61,54 +55,71 @@
     try{
       const all=rows(),assigned=all.filter(r=>root().assignments[r.instanceId]).length;
       const title=$('v48InstitutionalTitle');if(title)title.textContent=`${state.school||'Escuela'} · Gestión institucional`;
-      const hero=screen.querySelector('.hero p');if(hero)hero.textContent='Modo estable: carga docente, disponibilidad y horario. La estructura curricular de Fase 1 y Fase 2 permanece intacta.';
+      const hero=screen.querySelector('.hero p');if(hero)hero.textContent='Gestión liviana: carga docente, disponibilidad y horario. Fase 1 y Fase 2 permanecen intactas.';
       host.innerHTML=`
-        <div class="v71m-summary">
-          <span><strong>${teachers().length}</strong> docentes</span>
-          <span><strong>${assigned}</strong>/${all.length} materias asignadas</span>
-        </div>
-        <section class="card v48-section v66-source-section v71m-source">
-          <div class="eyebrow">Carga docente</div>
-          <h2>Asignación rápida</h2>
-          <p>Usá el Excel simple para asignar docentes. La tabla completa no se carga en esta vista para mantener Gestión ágil.</p>
-        </section>
-        <section class="card v48-section v71m-teacher-section">
-          <div class="eyebrow">Plantel</div>
-          <h2>Docentes</h2>
-          <div class="v71m-add"><input id="v71LeanTeacherName" placeholder="Nombre y apellido"><input id="v71LeanTeacherEmail" placeholder="Email (opcional)"><button id="v71LeanAddTeacher" class="btn primary" type="button">Agregar</button></div>
-          ${teacherHtml()}
-        </section>
+        <div class="v71m-summary"><span><strong>${teachers().length}</strong> docentes</span><span><strong>${assigned}</strong>/${all.length} materias asignadas</span></div>
+        <section class="card v48-section v66-source-section v71m-source"><div class="eyebrow">Carga docente</div><h2>Asignación rápida</h2><p>Usá el Excel simple para asignar docentes. La tabla completa no se carga para mantener Gestión ágil.</p></section>
+        <section class="card v48-section v71m-teacher-section"><div class="eyebrow">Plantel</div><h2>Docentes</h2><div class="v71m-add"><input id="v71LeanTeacherName" placeholder="Nombre y apellido"><input id="v71LeanTeacherEmail" placeholder="Email (opcional)"><button id="v71LeanAddTeacher" class="btn primary" type="button">Agregar</button></div>${teacherHtml()}</section>
         <div id="v71mDynamic"></div>`;
-
       $('v71LeanAddTeacher')?.addEventListener('click',addTeacher);
       host.querySelectorAll('[data-v71m-delete]').forEach(b=>b.addEventListener('click',()=>deleteTeacher(b.dataset.v71mDelete)));
-
-      // Insertar únicamente los módulos operativos necesarios.
       setTimeout(()=>{
-        try{window.PCISimpleAssignmentExcelV71?.render?.()}catch(e){console.warn('V71M excel',e)}
-        try{window.PCIAvailabilityPreferencesV60?.render?.()}catch(e){console.warn('V71M availability',e)}
-        try{window.PCIAnnualSchedulerV68?.render?.()}catch(e){console.warn('V71M scheduler',e)}
-        try{window.PCISimpleScheduleTrialV71?.renderTrial?.()}catch{}
+        try{window.PCISimpleAssignmentExcelV71?.render?.()}catch(e){console.warn('V71N excel',e)}
+        try{window.PCIAvailabilityPreferencesV60?.render?.()}catch(e){console.warn('V71N availability',e)}
+        try{window.PCIAnnualSchedulerV68?.render?.()}catch(e){console.warn('V71N scheduler',e)}
         try{window.PCIManagementNavResetV71?.renderNav?.()}catch{}
       },80);
     }finally{rendering=false}
   }
 
-  function openLean(e){
-    const btn=e.target.closest('#openInstitutional,#openInstitutionalGeneral');if(!btn)return;
-    e.preventDefault();e.stopImmediatePropagation();
+  function openManagement(){
     window.screen?.('institutional');
-    setTimeout(render,10);
+    setTimeout(render,15);
   }
-  document.addEventListener('click',openLean,true);
+
+  function ensureEntryButtons(){
+    // Entrada desde Inicio: reemplaza el acceso que antes aportaba V66.
+    const list=$('pciList');
+    if(list){
+      let card=$('v71LeanHomeEntry');
+      if(!card){
+        card=document.createElement('section');
+        card.id='v71LeanHomeEntry';card.className='card v71n-entry-card';
+        list.after(card);
+      }
+      const all=rows(),assigned=all.filter(r=>root().assignments[r.instanceId]).length;
+      card.innerHTML=`<div><div class="eyebrow">Nivel escuela</div><h2>Gestión institucional</h2><p>Docentes, disponibilidad, equipos y horario en modo liviano.</p><small>${teachers().length} docentes · ${assigned}/${all.length} materias asignadas</small></div><button type="button" class="btn primary" data-v71n-open>Abrir Gestión</button>`;
+      card.querySelector('[data-v71n-open]').onclick=openManagement;
+    }
+
+    // Entrada desde Panel por si el usuario trabaja desde ese recorrido.
+    const grid=document.querySelector('#panel .phase-grid');
+    if(grid){
+      let card=$('v71LeanPanelEntry');
+      if(!card){
+        card=document.createElement('article');card.id='v71LeanPanelEntry';card.className='card phase v71n-panel-entry';grid.appendChild(card);
+      }
+      card.innerHTML='<div class="eyebrow">Gestión</div><h2>Gestión institucional</h2><p>Planta docente, disponibilidad y horario.</p><button type="button" class="btn primary" data-v71n-open>Entrar</button>';
+      card.querySelector('[data-v71n-open]').onclick=openManagement;
+    }
+  }
 
   function install(){
     const a=api();if(a)a.renderInstitutional=render;
-    // Si ya estamos adentro, reemplazar inmediatamente la vista pesada.
+    ensureEntryButtons();
+    const list=$('pciList');
+    if(list&&!entryObserver){entryObserver=new MutationObserver(()=>setTimeout(ensureEntryButtons,50));entryObserver.observe(list,{childList:true})}
     if($('institutional')?.classList.contains('active'))render();
   }
-  window.addEventListener('pci-app-ready',()=>setTimeout(install,50));
-  setTimeout(install,500);
+
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('#openInstitutional,#openInstitutionalGeneral,[data-v71n-open]');
+    if(!btn)return;
+    e.preventDefault();e.stopImmediatePropagation();openManagement();
+  },true);
+  window.addEventListener('pci-app-ready',()=>setTimeout(install,80));
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(install,250),{once:true});
+  setTimeout(install,700);
 
   const style=document.createElement('style');
   style.textContent=`
@@ -117,9 +128,10 @@
     .v71m-add{display:grid;grid-template-columns:minmax(160px,1fr) minmax(170px,1fr) auto;gap:7px;margin-top:10px}.v71m-add input{min-width:0;padding:9px;border:1px solid var(--line);border-radius:9px}
     .v71m-teachers{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:7px;margin-top:10px}.v71m-teacher{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--band)}.v71m-teacher strong{display:block;font-size:.7rem}.v71m-teacher small{display:block;margin-top:2px;font-size:.52rem;color:var(--muted)}.v71m-teacher button{flex:0 0 30px;width:30px;height:30px;border:1px solid #ddb7bf;border-radius:50%;background:#fff5f6;color:var(--danger);font-size:1.05rem;font-weight:900;line-height:1;cursor:pointer}.v71m-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;margin-top:10px;color:var(--muted);font-size:.62rem}
     .v66-assignment-section,.v48-table-wrap{display:none!important}
-    @media(max-width:780px){.v71m-add{grid-template-columns:1fr}.v71m-add .btn{width:100%}.v71m-teachers{grid-template-columns:1fr}}
+    .v71n-entry-card{margin-top:16px;padding:18px;display:flex;justify-content:space-between;gap:16px;align-items:center;border-color:#9edfd7;background:linear-gradient(135deg,#f7fffd,#edf8f7)}.v71n-entry-card h2{margin:4px 0}.v71n-entry-card p{margin:0;color:var(--muted);font-size:.72rem}.v71n-entry-card small{display:block;margin-top:7px;color:var(--muted);font-size:.58rem}.v71n-entry-card>.btn{flex:0 0 auto}
+    @media(max-width:780px){.v71m-add{grid-template-columns:1fr}.v71m-add .btn{width:100%}.v71m-teachers{grid-template-columns:1fr}.v71n-entry-card{align-items:stretch;flex-direction:column}.v71n-entry-card>.btn{width:100%}}
   `;
   document.head.appendChild(style);
 
-  window.PCILeanManagementV71={render,deleteTeacher,addTeacher};
+  window.PCILeanManagementV71={render,deleteTeacher,addTeacher,ensureEntryButtons,openManagement};
 })();
