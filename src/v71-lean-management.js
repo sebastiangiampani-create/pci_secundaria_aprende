@@ -1,6 +1,6 @@
 (() => {
   const $=id=>document.getElementById(id);
-  let rendering=false,entryObserver=null,selectedCourseKey='';
+  let rendering=false,entryObserver=null,selectedCourseKey='',hoursReady=false,hoursLoading=null;
 
   function root(){
     state.institutional=state.institutional||{};
@@ -14,6 +14,15 @@
   const rows=()=>api()?.allImplementationRows?.()||[];
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const uid=()=>`doc-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+
+  async function ensureHours(){
+    if(hoursReady)return true;
+    if(hoursLoading)return hoursLoading;
+    const a=api();
+    if(!a?.loadHours)return false;
+    hoursLoading=Promise.resolve(a.loadHours()).then(()=>{hoursReady=true;return true}).catch(e=>{console.error('V71P loadHours',e);toast('No se pudieron cargar las horas oficiales del plan.',true);return false}).finally(()=>{hoursLoading=null});
+    return hoursLoading;
+  }
 
   function assignmentCount(tid){return Object.values(root().assignments).filter(id=>id===tid).length}
 
@@ -99,7 +108,7 @@
     try{
       const all=rows(),assigned=all.filter(r=>root().assignments[r.instanceId]).length;
       const title=$('v48InstitutionalTitle');if(title)title.textContent=`${state.school||'Escuela'} · Gestión institucional`;
-      const hero=screen.querySelector('.hero p');if(hero)hero.textContent='Gestión liviana: asignación por materia, disponibilidad y horario. Fase 1 y Fase 2 permanecen intactas.';
+      const hero=screen.querySelector('.hero p');if(hero)hero.textContent='Gestión liviana: asignación por materia, disponibilidad y horarios separados por curso y por docente. Fase 1 y Fase 2 permanecen intactas.';
       host.innerHTML=`
         <div class="v71m-summary"><span><strong>${teachers().length}</strong> docentes</span><span id="v71mAssignedSummary"><strong>${assigned}</strong>/${all.length} materias asignadas</span></div>
         <section class="card v48-section v66-source-section v71m-source"><div class="eyebrow">Carga docente</div><h2>Asignación rápida</h2><p>Podés usar el Excel simple o asignar manualmente materia por materia en el bloque siguiente.</p></section>
@@ -110,34 +119,39 @@
       host.querySelectorAll('[data-v71m-delete]').forEach(b=>b.addEventListener('click',()=>deleteTeacher(b.dataset.v71mDelete)));
       bindAssignments(host);
       setTimeout(()=>{
-        try{window.PCISimpleAssignmentExcelV71?.render?.()}catch(e){console.warn('V71O excel',e)}
-        try{window.PCIAvailabilityPreferencesV60?.render?.()}catch(e){console.warn('V71O availability',e)}
-        try{window.PCIAnnualSchedulerV68?.render?.()}catch(e){console.warn('V71O scheduler',e)}
+        try{window.PCISimpleAssignmentExcelV71?.render?.()}catch(e){console.warn('V71P excel',e)}
+        try{window.PCIAvailabilityPreferencesV60?.render?.()}catch(e){console.warn('V71P availability',e)}
+        try{window.PCIAnnualSchedulerV68?.render?.()}catch(e){console.warn('V71P scheduler',e)}
         try{window.PCIManagementNavResetV71?.renderNav?.()}catch{}
       },80);
     }finally{rendering=false}
   }
 
-  function openManagement(){window.screen?.('institutional');setTimeout(render,15)}
+  async function openManagement(){
+    await ensureHours();
+    window.screen?.('institutional');
+    setTimeout(render,40);
+  }
 
   function ensureEntryButtons(){
     const list=$('pciList');
     if(list){
       let card=$('v71LeanHomeEntry');if(!card){card=document.createElement('section');card.id='v71LeanHomeEntry';card.className='card v71n-entry-card';list.after(card)}
       const all=rows(),assigned=all.filter(r=>root().assignments[r.instanceId]).length;
-      card.innerHTML=`<div><div class="eyebrow">Nivel escuela</div><h2>Gestión institucional</h2><p>Docentes, asignación por materia, disponibilidad y horario.</p><small>${teachers().length} docentes · ${assigned}/${all.length} materias asignadas</small></div><button type="button" class="btn primary" data-v71n-open>Abrir Gestión</button>`;
+      card.innerHTML=`<div><div class="eyebrow">Nivel escuela</div><h2>Gestión institucional</h2><p>Docentes, asignación por materia, disponibilidad y horarios por curso/docente.</p><small>${teachers().length} docentes · ${assigned}/${all.length} materias asignadas</small></div><button type="button" class="btn primary" data-v71n-open>Abrir Gestión</button>`;
       card.querySelector('[data-v71n-open]').onclick=openManagement;
     }
     const grid=document.querySelector('#panel .phase-grid');
     if(grid){
       let card=$('v71LeanPanelEntry');if(!card){card=document.createElement('article');card.id='v71LeanPanelEntry';card.className='card phase v71n-panel-entry';grid.appendChild(card)}
-      card.innerHTML='<div class="eyebrow">Gestión</div><h2>Gestión institucional</h2><p>Planta docente, asignación por materia, disponibilidad y horario.</p><button type="button" class="btn primary" data-v71n-open>Entrar</button>';
+      card.innerHTML='<div class="eyebrow">Gestión</div><h2>Gestión institucional</h2><p>Planta docente, asignación por materia, disponibilidad y horarios.</p><button type="button" class="btn primary" data-v71n-open>Entrar</button>';
       card.querySelector('[data-v71n-open]').onclick=openManagement;
     }
   }
 
-  function install(){
+  async function install(){
     const a=api();if(a)a.renderInstitutional=render;
+    await ensureHours();
     ensureEntryButtons();
     const list=$('pciList');if(list&&!entryObserver){entryObserver=new MutationObserver(()=>setTimeout(ensureEntryButtons,50));entryObserver.observe(list,{childList:true})}
     if($('institutional')?.classList.contains('active'))render();
@@ -161,5 +175,5 @@
   `;
   document.head.appendChild(style);
 
-  window.PCILeanManagementV71={render,deleteTeacher,addTeacher,ensureEntryButtons,openManagement,setAssignment};
+  window.PCILeanManagementV71={render,deleteTeacher,addTeacher,ensureEntryButtons,openManagement,setAssignment,ensureHours};
 })();
