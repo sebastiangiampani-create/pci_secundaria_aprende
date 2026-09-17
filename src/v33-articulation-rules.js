@@ -10,11 +10,21 @@
   const isFo=slot=>/^(foN3|foN4|foLab5|foTaller5)-c\d+$/.test(String(slot||''));
   const isFlexible=s=>!!s&&(s.origin==='CUSTOM'||/^fg-\d+-(espacios-de-definicion-institucional|tutoria)$/.test(String(s.id||'')));
   const curricular=s=>!!s&&!isFlexible(s);
+  const SOCIAL3=new Set(['Historia','Geografía','Formación Ética y Ciudadana','Economía']);
 
   const style=document.createElement('style');
   style.textContent=`
+    /* La matriz se desplaza; las referencias de nivel/cuatrimestre quedan visibles. */
+    #offer .matrix-shell{max-height:calc(100vh - 155px);overflow:auto;position:relative}
+    #offer #matrix>.grid.levels{position:sticky;top:0;z-index:12;background:#fff;padding-top:2px}
+    #offer #matrix>.grid:nth-child(2){position:sticky;top:31px;z-index:11;background:#fff;padding-bottom:2px}
+    #offer #matrix>.grid.levels>div:first-child,
+    #offer #matrix>.grid:nth-child(2)>.term:first-child{position:sticky;left:0;z-index:14;background:#fff}
+    #offer #matrix>.grid:nth-child(2)>.term:first-child{background:var(--band)}
+    #offer .rowlabel{z-index:6}
     @media(max-width:760px){
       #offer .matrix-wrap,#offer .matrix-container{overflow-x:auto;-webkit-overflow-scrolling:touch}
+      #offer .matrix-shell{max-height:70vh;-webkit-overflow-scrolling:touch}
       #offer #matrix{min-width:1180px}
       #offer .placed{font-size:.58rem;line-height:1.15}
       #offer .map-grip{padding:4px 3px;touch-action:none}
@@ -60,12 +70,10 @@
       if(after<min)return[false,`El espacio de Formación Orientada quedaría con ${after} materia${after===1?'':'s'} y necesita al menos ${min}.`];
     }
     if(isFgLab(source)){
-      const i=info(source),after=curricularCount(source,id);
-      if(after===1&&!fgSingleAllowed(source)){
-        if(i?.year===3&&(i.key==='socialA'||i.key==='socialB'))return[true,'social3'];
-        return[false,'El laboratorio de Formación General quedaría con una sola materia, configuración no permitida para este nivel.'];
-      }
+      const after=curricularCount(source,id),i=info(source);
+      if(after===1&&!fgSingleAllowed(source))return[false,'El laboratorio de Formación General quedaría con una sola materia, configuración no permitida para este nivel.'];
       if(after===0&&!fgSingleAllowed(source))return[false,'El movimiento eliminaría un laboratorio mínimo prescripto de Formación General.'];
+      if(i?.year===3&&(i.key==='socialA'||i.key==='socialB')&&after>=2)return[true,'social3'];
     }
     return[true,''];
   }
@@ -79,9 +87,18 @@
     return[true,''];
   }
 
+  function articulatedSocial3Ids(){
+    const ids=new Set();
+    for(const slot of ['foN3-c5','foN3-c6'])for(const id of current().placements?.[slot]||[]){
+      const s=byId(id);if(s?.origin==='FG'&&Number(s.year)===3&&SOCIAL3.has(s.name))ids.add(id);
+    }
+    return ids;
+  }
+  function socialCoreIds(slot){return (current().placements?.[slot]||[]).filter(id=>{const s=byId(id);return s?.origin==='FG'&&Number(s.year)===3&&SOCIAL3.has(s.name)})}
+  function sameIds(a,b){const A=new Set(a),B=new Set(b);return A.size===B.size&&[...A].every(x=>B.has(x))}
+
   function normalizeSocial3(){
-    const articulated=new Set();
-    for(const slot of ['foN3-c5','foN3-c6'])for(const id of current().placements?.[slot]||[]){const s=byId(id);if(s?.origin==='FG'&&['Historia','Geografía','Formación Ética y Ciudadana','Economía'].includes(s.name))articulated.add(id)}
+    const articulated=articulatedSocial3Ids();
     if(!articulated.size)return;
     current().socialOption='A';
     for(const t of [5,6]){
@@ -90,6 +107,15 @@
       current().placements[a]=[...new Set(merged)].filter(id=>!articulated.has(id));
       current().placements[b]=[];
     }
+  }
+
+  function articulatedSocial3Valid(){
+    const articulated=articulatedSocial3Ids();
+    if(!articulated.size)return false;
+    const a5=socialCoreIds('socialA-c5'),a6=socialCoreIds('socialA-c6');
+    const b5=socialCoreIds('socialB-c5'),b6=socialCoreIds('socialB-c6');
+    const remaining=4-articulated.size;
+    return current().socialOption==='A'&&remaining>=2&&a5.length===remaining&&a6.length===remaining&&sameIds(a5,a6)&&b5.length===0&&b6.length===0;
   }
 
   function moveCross(source,target,id){
@@ -113,7 +139,6 @@
     },true);
   }
 
-  // Touch/iPhone: intercepta el final del gesto antes de que llegue al validador viejo.
   function bindTouchCapture(){
     const matrix=document.getElementById('matrix');if(!matrix||matrix.__v33Touch)return;
     matrix.__v33Touch=true;
@@ -137,6 +162,34 @@
       if(isFgLab(slot)&&s?.origin==='FO')return[true,''];
     }
     return previousValidTarget(slot,s);
+  };
+
+  /*
+    El validador histórico de Sociales N3 exige exactamente 4 materias en la
+    opción de 10 laboratorios. Cuando hay articulación FG→FO, la regla vigente
+    es "al menos 2". Para no duplicar el resto del validador, se completa solo
+    durante la llamada de validación y se restaura inmediatamente el estado real.
+  */
+  const previousValidateOffer=validateOffer;
+  validateOffer=function(){
+    normalizeSocial3();
+    if(!articulatedSocial3Valid())return previousValidateOffer();
+    const articulated=[...articulatedSocial3Ids()];
+    const p=current().placements;
+    const snapshot={
+      a5:[...(p['socialA-c5']||[])],a6:[...(p['socialA-c6']||[])],
+      b5:[...(p['socialB-c5']||[])],b6:[...(p['socialB-c6']||[])]
+    };
+    for(const id of articulated){
+      if(!p['socialA-c5'].includes(id))p['socialA-c5'].push(id);
+      if(!p['socialA-c6'].includes(id))p['socialA-c6'].push(id);
+    }
+    try{return previousValidateOffer();}
+    finally{
+      p['socialA-c5']=snapshot.a5;p['socialA-c6']=snapshot.a6;p['socialB-c5']=snapshot.b5;p['socialB-c6']=snapshot.b6;
+      save();
+      setTimeout(()=>renderOffer(),0);
+    }
   };
 
   const previousRender=renderOffer;
