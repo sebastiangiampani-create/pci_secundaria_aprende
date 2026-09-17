@@ -10,12 +10,13 @@
     .replace(/\s*\n\s*/g, ' ')
     .trim();
 
+  const longEnough = s => clean(s).length >= 18;
+
   function splitAtomic(raw) {
     const text = clean(raw);
     if (!text) return { parent: '', items: [] };
 
-    // Separadores estructurales frecuentes en las fuentes oficiales FO.
-    // Se evita cortar por punto o punto y coma para no fragmentar oraciones normales.
+    // Primera pasada: separadores explícitos del material fuente.
     let marked = text
       .replace(/\s*[•▪◦]\s+/g, ' \u241e ')
       .replace(/\.\s*[-–—]\s+(?=[A-ZÁÉÍÓÚÜÑ¿¡0-9])/g, '. \u241e ')
@@ -24,15 +25,33 @@
       .replace(/\s+(?=\d{1,2}[.)]\s+[A-ZÁÉÍÓÚÜÑ¿¡])/g, ' \u241e ');
 
     let parts = marked.split('\u241e').map(clean).filter(Boolean);
-    if (parts.length < 2) return { parent: '', items: [text] };
 
-    // Une fragmentos absurdamente cortos con el siguiente para no crear falsos contenidos.
+    // Segunda pasada: si un bloque sigue siendo largo, divide enumeraciones por
+    // punto y coma y oraciones claramente autónomas. No corta abreviaturas ni
+    // segmentos breves para evitar atomización artificial.
+    const finer = [];
+    for (const part of parts) {
+      let subs = [part];
+      if (part.length >= 110 && part.includes(';')) {
+        const bySemi = part.split(/;\s+(?=[A-ZÁÉÍÓÚÜÑ¿¡0-9])/).map(clean).filter(Boolean);
+        if (bySemi.length > 1 && bySemi.every(longEnough)) subs = bySemi;
+      }
+      const sentenceSplit = [];
+      for (const sub of subs) {
+        if (sub.length >= 150) {
+          const bySentence = sub.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÜÑ¿¡])/).map(clean).filter(Boolean);
+          if (bySentence.length > 1 && bySentence.every(longEnough)) sentenceSplit.push(...bySentence);
+          else sentenceSplit.push(sub);
+        } else sentenceSplit.push(sub);
+      }
+      finer.push(...sentenceSplit);
+    }
+    parts = finer;
+
     const normalized = [];
     for (let i = 0; i < parts.length; i++) {
       let part = parts[i].replace(/^[-–—•▪◦]\s*/, '').trim();
-      if (part.length < 12 && i + 1 < parts.length) {
-        part = `${part} ${parts[++i]}`.trim();
-      }
+      if (part.length < 12 && i + 1 < parts.length) part = `${part} ${parts[++i]}`.trim();
       if (part) normalized.push(part);
     }
     parts = normalized;
@@ -49,6 +68,7 @@
     const out = [];
     let splitRows = 0;
     let atomicItems = 0;
+    let maxAtomicCount = 1;
 
     for (const row of Array.isArray(rows) ? rows : []) {
       const parsed = splitAtomic(row?.text);
@@ -58,6 +78,7 @@
       }
 
       splitRows++;
+      maxAtomicCount = Math.max(maxAtomicCount, parsed.items.length);
       parsed.items.forEach((item, index) => {
         atomicItems++;
         out.push({
@@ -77,7 +98,8 @@
       originalRows: Array.isArray(rows) ? rows.length : 0,
       normalizedRows: out.length,
       splitRows,
-      generatedAtomicItems: atomicItems
+      generatedAtomicItems: atomicItems,
+      maxAtomicCount
     });
     return out;
   }
@@ -94,9 +116,7 @@
     const buffer = await new Response(stream).arrayBuffer();
     const arr = new Uint8Array(buffer);
     let binary = '';
-    for (let i = 0; i < arr.length; i += 0x8000) {
-      binary += String.fromCharCode(...arr.subarray(i, i + 0x8000));
-    }
+    for (let i = 0; i < arr.length; i += 0x8000) binary += String.fromCharCode(...arr.subarray(i, i + 0x8000));
     return btoa(binary);
   }
 
@@ -108,7 +128,7 @@
     if (processed.has(file)) {
       return new Response(processed.get(file), {
         status: 200,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-PCI-FO-Atomic': '1' }
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-PCI-FO-Atomic': '2' }
       });
     }
 
@@ -124,7 +144,7 @@
       return new Response(encoded, {
         status: response.status,
         statusText: response.statusText,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-PCI-FO-Atomic': '1' }
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-PCI-FO-Atomic': '2' }
       });
     } catch (error) {
       console.error('[PCI FO normalizer]', file, error);
