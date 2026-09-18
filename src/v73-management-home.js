@@ -1,6 +1,6 @@
 (() => {
   const $=id=>document.getElementById(id);
-  let observer=null,timer=null,activeKey='home',applying=false;
+  let timer=null,activeKey='home',applying=false;
 
   const defs=[
     {key:'docentes',title:'Docentes y cargos',desc:'Planta docente, cargos, bolsas de horas y carga disponible.',icon:'👥',
@@ -136,7 +136,6 @@
   function applyView(){
     const h=host();if(!h||!visibleManagement()||applying)return;
     applying=true;
-    if(observer)observer.disconnect();
     try{
     renderHome();
     const home=$('v73ManagementHome'),bar=ensureToolbar();
@@ -161,7 +160,6 @@
     }
     } finally {
       applying=false;
-      if(observer&&h)observer.observe(h,{childList:true,subtree:false});
     }
   }
 
@@ -173,14 +171,7 @@
     },80);
   }
 
-  function start(){
-    const h=host();if(!h)return;
-    if(!observer){
-      observer=new MutationObserver(refresh);
-      observer.observe(h,{childList:true,subtree:false});
-    }
-    refresh();
-  }
+  function start(){if(!host())return;refresh();}
 
   window.addEventListener('pci-app-ready',()=>setTimeout(start,900));
   document.addEventListener('click',e=>{if(e.target.closest('[data-v71n-open],#openInstitutional,#openInstitutionalGeneral')){activeKey='home';setTimeout(start,250)}},true);
