@@ -46,7 +46,8 @@
       const grid=panel.querySelector('.phase-grid');
       grid?.after(printEntry);
     }
-    printEntry.querySelector('[data-v75-print-pci]')?.addEventListener('click',()=>document.getElementById('printBtn')?.click());
+    const printButton=printEntry.querySelector('[data-v75-print-pci]');
+    if(printButton)printButton.onclick=()=>document.getElementById('printBtn')?.click();
   }
   function decorate(){ensureAreas();cleanPanel()}
   function refresh(){clearTimeout(timer);timer=setTimeout(decorate,60)}
