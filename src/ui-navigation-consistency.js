@@ -11,6 +11,8 @@
       #panel .phase-grid>#institutionalCard,#panel #v71LeanPanelEntry{display:none!important}
       #institutional>.back,#institutional>.pci-backbar,#offer>.back,#offer>.pci-backbar{display:none!important}
       #proposal .v28-back,#proposal [id="v28panel"],#proposal>.back,#proposal>.pci-backbar{display:none!important}
+      #proposal>h2#proposalTitle:empty,#proposal>#proposalTitle:empty{display:none!important;margin:0!important;padding:0!important;height:0!important;min-height:0!important}
+      #proposal>.card:empty,#proposal>.panel:empty,#proposal>.card.panel:has(> #proposalTitle:empty):not(:has(:not(#proposalTitle))){display:none!important;margin:0!important;padding:0!important;height:0!important;min-height:0!important;border:0!important}
       .screen>.back{display:none!important}
       @media(max-width:760px){
         body{padding-bottom:76px}
