@@ -281,6 +281,7 @@
         try{window.PCIAvailabilityPreferencesV60?.render?.()}catch(e){console.warn('V71P availability',e)}
         try{window.PCIAnnualSchedulerV68?.render?.()}catch(e){console.warn('V71P scheduler',e)}
         try{window.PCIManagementNavResetV71?.renderNav?.()}catch{}
+        try{window.PCIManagementHomeV73?.refresh?.()}catch(e){console.warn('V73 home refresh',e)}
       },80);
     }finally{rendering=false}
   }
