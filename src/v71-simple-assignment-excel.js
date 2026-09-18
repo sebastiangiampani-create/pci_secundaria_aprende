@@ -139,11 +139,21 @@
     if(name){const hit=list.find(t=>norm(t.name)===norm(name));if(hit)return hit}
     return null;
   }
-  function ensureTeacher(name,email,dni='',cargoType='',manualHours=''){ cargoType=cargoCode(cargoType)||cargoType;
+  function ensureTeacher(name,email,dni='',cargoType='',manualHours='',appendCargo=false){ cargoType=cargoCode(cargoType)||cargoType;
     let t=findTeacher(name,email);
-    if(t){if(email&&!t.email)t.email=email;if(name&&!t.name)t.name=name;if(dni&&!t.dni)t.dni=dni;if(cargoType)t.cargoType=cargoType;if(cargoType==='POR_HORAS')t.manualHours=Math.max(0,Number(manualHours)||0);if(t.meetingHours==null)t.meetingHours=3;return t}
+    if(t){
+      if(email&&!t.email)t.email=email;if(name&&!t.name)t.name=name;if(dni&&!t.dni)t.dni=dni;if(t.meetingHours==null)t.meetingHours=3;
+      if(!Array.isArray(t.cargos)||!t.cargos.length)t.cargos=[{id:`cargo-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,type:t.cargoType||'TP4',manualHours:t.cargoType==='POR_HORAS'?Math.max(0,Number(t.manualHours)||0):0}];
+      if(appendCargo&&cargoType){
+        const h=cargoType==='POR_HORAS'?Math.max(0,Number(manualHours)||0):({TC:36,TP1:30,TP2:24,TP3:18,TP4:12}[cargoType]||0);
+        const total=t.cargos.reduce((n,c)=>n+(c.type==='POR_HORAS'?Math.max(0,Number(c.manualHours)||0):({TC:36,TP1:30,TP2:24,TP3:18,TP4:12}[c.type]||0)),0);
+        if(total+h>72)throw new Error(`${t.name} supera el tope de 72 HC con los cargos informados.`);
+        t.cargos.push({id:`cargo-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,type:cargoType,manualHours:cargoType==='POR_HORAS'?Math.max(0,Number(manualHours)||0):0});
+      }
+      return t
+    }
     if(!name&&!email)return null;
-    t={id:uid(),name:name||email,dni:dni||'',email:email||'',cargoType:cargoType||'TP4',manualHours:cargoType==='POR_HORAS'?Math.max(0,Number(manualHours)||0):0,meetingHours:3,baseHours:0,baseHoursSource:'assignments'};
+    t={id:uid(),name:name||email,dni:dni||'',email:email||'',cargoType:cargoType||'TP4',manualHours:cargoType==='POR_HORAS'?Math.max(0,Number(manualHours)||0):0,cargos:[{id:`cargo-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,type:cargoType||'TP4',manualHours:cargoType==='POR_HORAS'?Math.max(0,Number(manualHours)||0):0}],meetingHours:3,baseHours:0,baseHoursSource:'assignments'};
     root().teachers[t.id]=t;
     return t;
   }
@@ -195,7 +205,7 @@
           const manualHours=raw['HC por horas'];
           if(!name&&!email&&!dni)continue;
           const before=findTeacher(name,email);
-          const t=ensureTeacher(name,email,dni,cargoType||'TP4',manualHours);
+          const t=ensureTeacher(name,email,dni,cargoType||'TP4',manualHours,!!before);
           if(!t){skipped++;continue}
           if(before)updated++;else created++;
         }
