@@ -15,12 +15,14 @@
 
   function targets(){
     return [
-      {key:'excel',label:'Carga Excel',find:()=>$('v71SimpleAssignmentExcel')},
-      {key:'docentes',label:'Docentes',find:()=>byHeading(/Docentes de toda la escuela/i)},
-      {key:'asignaciones',label:'Asignaciones',find:()=>$('v48InstitutionalContent')?.querySelector('.v66-assignment-section')||byHeading(/Asignación docente/i)},
-      {key:'equipos',label:'Equipos y carga',find:()=>byHeading(/equipo|planificaci[oó]n|carga docente/i)},
+      {key:'resumen',label:'Resumen',find:()=>$('v71ManagementSummary')||host()?.querySelector('.v71m-summary')},
+      {key:'docentes',label:'Docentes y cargos',find:()=>$('v71TeacherSection')||host()?.querySelector('.v71m-teacher-section')||byHeading(/Docentes y bolsa de horas|Docentes/i)},
+      {key:'asignaciones',label:'Asignaciones',find:()=>$('v71AssignmentSection')||host()?.querySelector('.v71o-assignment')||byHeading(/Arrastrá un docente|Asignación/i)},
+      {key:'comisiones',label:'Comisiones y estudiantes',find:()=>$('v72StudentsCommissions')||byHeading(/Comisiones y estudiantes|Listados generados/i)},
+      {key:'equipos',label:'Equipos y reuniones',find:()=>byHeading(/Equipos y reuniones|equipo|planificaci[oó]n|carga docente/i)},
       {key:'disponibilidad',label:'Disponibilidad',find:()=>$('v60Availability')||byHeading(/Disponibilidad y preferencias/i)},
-      {key:'horario',label:'Horario',find:()=>$('v68AnnualScheduler')||byHeading(/grilla|horario/i)},
+      {key:'horario',label:'Horarios',find:()=>$('v68AnnualScheduler')||byHeading(/Vistas del horario|grilla|horario/i)},
+      {key:'excel',label:'Carga Excel',find:()=>$('v71SimpleAssignmentExcel')},
       {key:'respaldo',label:'Respaldo',find:()=>$('v68InstitutionalExport')||byHeading(/Descargar e imprimir|respaldo/i)}
     ];
   }
@@ -93,7 +95,7 @@
       background:rgba(255,255,255,.97);box-shadow:0 10px 28px rgba(18,57,92,.08);
       backdrop-filter:blur(12px)
     }
-    .v71k-nav-scroll{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;overflow:visible;padding:0}
+    .v71k-nav-scroll{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;overflow:visible;padding:0}
     .v71k-management-nav button{
       min-height:50px;border:1px solid #d9e3ea;border-radius:999px;background:#f7fafc;color:#12395c;
       padding:10px 16px;font-size:.72rem;font-weight:850;cursor:pointer;white-space:nowrap;
@@ -103,13 +105,15 @@
     .v71k-management-nav [data-v71k-go="excel"]{background:#163f68;color:#fff;border-color:#163f68}
     .v71k-management-nav [data-v71k-go="excel"]:hover{background:#12395c}
     .v71k-icon{display:inline-grid;place-items:center;width:20px;height:20px;font-size:1rem;font-weight:900}
-    [data-v71k-go="excel"] .v71k-icon::before{content:"▤"}
-    [data-v71k-go="disponibilidad"] .v71k-icon::before{content:"♟"}
-    [data-v71k-go="horario"] .v71k-icon::before{content:"◷"}
+    [data-v71k-go="resumen"] .v71k-icon::before{content:"▦"}
     [data-v71k-go="docentes"] .v71k-icon::before{content:"●"}
     [data-v71k-go="asignaciones"] .v71k-icon::before{content:"↔"}
+    [data-v71k-go="comisiones"] .v71k-icon::before{content:"▤"}
     [data-v71k-go="equipos"] .v71k-icon::before{content:"◎"}
-    [data-v71k-go="respaldo"] .v71k-icon::before{content:"⇩"}
+    [data-v71k-go="disponibilidad"] .v71k-icon::before{content:"♟"}
+    [data-v71k-go="horario"] .v71k-icon::before{content:"◷"}
+    [data-v71k-go="excel"] .v71k-icon::before{content:"⇩"}
+    [data-v71k-go="respaldo"] .v71k-icon::before{content:"□"}
     .v71k-management-nav .v71k-reset{
       width:100%;min-height:48px;border:1.5px solid #dfa7b2;background:#fff7f8;color:#b6324a;
       font-size:.75rem;font-weight:900;box-shadow:none
@@ -118,7 +122,9 @@
     .v71k-target-flash{outline:3px solid rgba(70,160,145,.22);outline-offset:3px;transition:outline-color .9s ease}
     @media(max-width:780px){
       .v71k-management-nav{top:0;margin-left:-2px;margin-right:-2px;padding:10px;border-radius:16px;gap:10px}
-      .v71k-nav-scroll{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+      .v71k-nav-scroll{display:flex;gap:7px;width:100%;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;padding-bottom:2px}
+      .v71k-nav-scroll::-webkit-scrollbar{display:none}
+      .v71k-nav-scroll button{scroll-snap-align:start;min-width:max-content}
       .v71k-management-nav button{min-height:48px;padding:9px 8px;font-size:.68rem;gap:6px}
       .v71k-icon{width:18px;height:18px;font-size:.9rem}
       .v71k-management-nav .v71k-reset{min-height:46px}
