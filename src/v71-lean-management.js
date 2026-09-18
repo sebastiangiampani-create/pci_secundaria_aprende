@@ -162,12 +162,17 @@
 
   function courseGroups(){
     const map=new Map();
+    const defs=window.PCIStudentsCommissionsV72?.commissionDefs?.()||[];
+    for(const d of defs){
+      const key=`${d.orientation}|||${d.course}`;
+      if(!map.has(key))map.set(key,{key,orientation:d.orientation,course:d.course,year:d.year,division:d.division,rows:[]});
+    }
     for(const row of rows()){
       const key=`${row.orientation}|||${row.course}`;
-      if(!map.has(key))map.set(key,{key,orientation:row.orientation,course:row.course,rows:[]});
+      if(!map.has(key))map.set(key,{key,orientation:row.orientation,course:row.course,year:row.year,division:row.division,rows:[]});
       map.get(key).rows.push(row);
     }
-    return [...map.values()].sort((a,b)=>String(a.orientation).localeCompare(String(b.orientation),'es')||String(a.course).localeCompare(String(b.course),'es'));
+    return [...map.values()].sort((a,b)=>String(a.orientation).localeCompare(String(b.orientation),'es')||Number(a.year||0)-Number(b.year||0)||String(a.course).localeCompare(String(b.course),'es'));
   }
 
   function assignmentSectionHtml(){
@@ -180,13 +185,13 @@
       <h2>Arrastrá un docente a la materia</h2>
       <p>La carga horaria sale del plan. Gestión descuenta automáticamente esas HC de la bolsa del cargo.</p>
       <label class="v71o-course-label">Curso<select id="v71oCourseSelect">${groups.map(g=>`<option value="${esc(g.key)}" ${g.key===selectedCourseKey?'selected':''}>${esc(g.orientation)} · ${esc(g.course)}</option>`).join('')}</select></label>
-      <div class="v71o-subject-list">${group.rows.map(row=>{
+      <div class="v71o-subject-list">${group.rows.length?group.rows.map(row=>{
         const tid=root().assignments[row.instanceId]||'',t=root().teachers[tid];
         return `<div class="v71o-subject-row ${tid?'assigned':''}" data-v71-drop="${esc(row.instanceId)}">
           <div><strong>${esc(row.name)}</strong><small>${row.hours==null?'HC pendiente':`${esc(row.hours)} HC`} · ${esc((row.locations||[]).join(' · ')||'Plan')}</small></div>
           <div class="v71o-dropzone">${t?`<span draggable="true" data-v71m-teacher-drag="${esc(t.id)}">⠿ ${esc(t.name)}</span><button type="button" data-v71-clear="${esc(row.instanceId)}">×</button>`:'Soltá un docente acá'}</div>
         </div>`;
-      }).join('')}</div>
+      }).join(''):'<div class="v71m-empty">El curso existe, pero todavía no tiene instancias curriculares materializadas desde el Mapa de la Oferta.</div>'}</div>
     </section>`;
   }
 
