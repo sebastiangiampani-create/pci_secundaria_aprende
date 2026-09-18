@@ -128,16 +128,37 @@
     const small=card.querySelector('small');if(small)small.textContent='Plan piloto habilitado para prueba.';
   }
 
+  function showGradingScreen(){
+    const section=ensureScreen();if(!section)return;
+    document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+    section.classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  function goHome(){
+    const home=$('home');if(!home)return;
+    document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+    home.classList.add('active');
+    window.PCIHomeRedesignV74?.refresh?.();
+    window.PCINavigation?.refresh?.();
+    window.scrollTo(0,0);
+  }
+
   function openGrading(){
-    ensureScreen();
-    window.screen?.('grading');
+    showGradingScreen();
     renderHome();
   }
 
   function renderHome(){
     const host=$('v76GradingRoot');if(!host)return;
     selectedContext=null;
-    const contexts=allContexts();
+    let contexts=[];
+    try{contexts=allContexts()}catch(error){
+      console.error('V76 contexts',error);
+      host.innerHTML='<div class="v76-topbar"><button type="button" class="btn soft" data-v76-home>← Inicio</button></div><div class="v76-hero"><div class="eyebrow">Calificaciones</div><h1>Evaluación de planes</h1><p>No se pudo reconstruir todavía la relación entre planes y comisiones.</p></div><div class="v76-empty-state"><strong>Calificaciones todavía no pudo leer la estructura curricular.</strong><span>Volvé a Inicio y comprobá que existan planes en Desarrollo Curricular y comisiones en Gestión.</span></div>';
+      host.querySelector('[data-v76-home]').onclick=goHome;
+      return;
+    }
     const grouped=new Map();
     for(const ctx of contexts){
       const k=[ctx.orientation,ctx.commission.key,ctx.group.id].join('|||');
@@ -145,6 +166,7 @@
       grouped.get(k).plans.push(ctx);
     }
     host.innerHTML=`
+      <div class="v76-topbar"><button type="button" class="btn soft" data-v76-home>← Inicio</button></div>
       <div class="v76-hero">
         <div class="eyebrow">Calificaciones</div>
         <h1>Evaluación de planes</h1>
@@ -154,7 +176,7 @@
         <span><strong>${grouped.size}</strong> agrupamientos/comisiones</span>
         <span><strong>${contexts.length}</strong> planes para evaluar</span>
       </div>
-      <div class="v76-grid">${[...grouped.values()].map(({ctx,plans})=>{
+      <div class="v76-grid">${grouped.size?[...grouped.values()].map(({ctx,plans})=>{
         const teachers=teachersFor(ctx);
         const ready=plans.filter(p=>criteriaReady(ensureEval(p))).length;
         return `<article class="v76-card">
@@ -165,7 +187,8 @@
           <div class="v76-plan-buttons">${plans.map(p=>`<button type="button" data-v76-open="${esc(p.key)}"><span>Plan ${p.planNumber}</span><small>${criteriaReady(ensureEval(p))?'Criterios listos':'Definir criterios'}</small></button>`).join('')}</div>
           <div class="v76-ready">${ready}/${plans.length} planes con criterios completos</div>
         </article>`;
-      }).join('')}</div>`;
+      }).join(''):'<div class="v76-empty-state"><strong>No hay planes disponibles para calificar todavía.</strong><span>Calificaciones se habilita cuando Desarrollo Curricular tiene planes y Gestión tiene comisiones del mismo nivel y orientación.</span></div>'}</div>`;
+    host.querySelector('[data-v76-home]').onclick=goHome;
     host.querySelectorAll('[data-v76-open]').forEach(b=>b.onclick=()=>openPlan(b.dataset.v76Open));
   }
 
@@ -318,6 +341,7 @@
   setTimeout(start,1600);
 
   const style=document.createElement('style');style.textContent=`
+    .v76-topbar{display:flex;justify-content:flex-start;margin:0 0 12px}.v76-empty-state{display:grid;gap:5px;margin-top:14px;padding:22px;border:1px dashed var(--line);border-radius:16px;background:#fff;color:var(--muted)}.v76-empty-state strong{color:var(--ink)}
     #grading .v76-hero{margin:-22px -24px 16px;padding:28px 24px;border-radius:0 0 28px 28px;background:linear-gradient(135deg,#edf3f8,#f7fbfa)}#grading .v76-hero h1{margin:4px 0 6px;font-size:clamp(1.8rem,3vw,3rem)}#grading .v76-hero p{margin:0;color:var(--muted)}
     .v76-summary{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.v76-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:.6rem}.v76-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.v76-card{padding:16px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:var(--shadow)}.v76-card-head{display:flex;justify-content:space-between;gap:8px;font-size:.56rem;color:var(--muted)}.v76-card h3{margin:8px 0 4px}.v76-card p,.v76-card>small{color:var(--muted);font-size:.62rem;line-height:1.4}.v76-plan-buttons{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:12px}.v76-plan-buttons button{padding:9px;border:1px solid var(--line);border-radius:12px;background:var(--band);text-align:left;color:var(--ink)}.v76-plan-buttons span{display:block;font-weight:900}.v76-plan-buttons small{font-size:.5rem;color:var(--muted)}.v76-ready{margin-top:9px;font-size:.55rem;color:var(--muted)}
     .v76-plan-top{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}.v76-plan-top h1{margin:4px 0}.v76-plan-top p{margin:0;color:var(--muted);font-size:.68rem}.v76-criteria,.v76-sheet-section{padding:18px;margin-top:14px}.v76-criteria h2,.v76-sheet-section h2{margin:4px 0}.v76-criteria>p,.v76-sheet-section p{margin:0;color:var(--muted);font-size:.68rem}.v76-criteria-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.v76-criteria-grid label{display:grid;gap:4px}.v76-criteria-grid span{font-size:.6rem;font-weight:900}.v76-criteria-grid textarea{min-height:82px;padding:9px;border:1px solid var(--line);border-radius:10px}.v76-criteria-actions{display:flex;align-items:center;gap:8px;margin-top:10px}.v76-criteria-actions .ok{color:var(--ok);font-size:.58rem;font-weight:900}.v76-criteria-actions .pending{color:#8a6414;font-size:.58rem;font-weight:900}
