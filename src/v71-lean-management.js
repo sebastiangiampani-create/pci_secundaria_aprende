@@ -1,6 +1,7 @@
 (() => {
   const $=id=>document.getElementById(id);
   let rendering=false,entryObserver=null,selectedCourseKey='',hoursReady=false,hoursLoading=null;
+  const CARGOS={TC:36,TP1:30,TP2:24,TP3:18,TP4:12};
 
   function root(){
     state.institutional=state.institutional||{};
@@ -24,7 +25,19 @@
     return hoursLoading;
   }
 
-  function assignmentCount(tid){return Object.values(root().assignments).filter(id=>id===tid).length}
+  function cargoNominal(t){
+    if(CARGOS[t.cargoType])return CARGOS[t.cargoType];
+    if(t.cargoType==='POR_HORAS')return Math.max(0,Number(t.manualHours||0));
+    return Math.max(0,Number(t.baseHours||0));
+  }
+  function assignedRows(tid){return rows().filter(r=>root().assignments[r.instanceId]===tid)}
+  function frontHours(tid){return assignedRows(tid).reduce((n,r)=>n+(Number(r.hours)||0),0)}
+  function meetingHours(t){return t.meetingHours==null?3:Math.max(0,Number(t.meetingHours)||0)}
+  function stats(t){
+    const nominal=cargoNominal(t),front=frontHours(t.id),liberated=Math.max(0,nominal-front),meeting=meetingHours(t),free=nominal-front-meeting;
+    return{nominal,front,liberated,meeting,free,over:Math.max(0,-free)};
+  }
+  function assignmentCount(tid){return assignedRows(tid).length}
 
   function deleteTeacher(tid){
     const r=root(),t=r.teachers[tid];if(!t)return;
@@ -43,17 +56,54 @@
 
   function addTeacher(){
     const name=$('v71LeanTeacherName')?.value.trim()||'';
+    const dni=$('v71LeanTeacherDni')?.value.trim()||'';
     const email=$('v71LeanTeacherEmail')?.value.trim()||'';
-    if(!name)return toast('Escribí el nombre del docente.',true);
-    const exists=teachers().find(t=>String(t.name).trim().toLowerCase()===name.toLowerCase()||(email&&String(t.email||'').trim().toLowerCase()===email.toLowerCase()));
+    const cargoType=$('v71LeanCargoType')?.value||'TP4';
+    const manualHours=Math.max(0,Number($('v71LeanManualHours')?.value||0));
+    if(!name)return toast('Escribí el nombre y apellido del docente.',true);
+    const exists=teachers().find(t=>String(t.name).trim().toLowerCase()===name.toLowerCase()||(dni&&String(t.dni||'')===dni)||(email&&String(t.email||'').trim().toLowerCase()===email.toLowerCase()));
     if(exists)return toast('Ese docente ya está cargado.',true);
-    const id=uid();root().teachers[id]={id,name,email};save();render();ensureEntryButtons();toast('Docente agregado.');
+    const id=uid();
+    root().teachers[id]={id,name,dni,email,cargoType,manualHours,meetingHours:3};
+    save();render();ensureEntryButtons();toast('Docente agregado.');
+  }
+
+  function updateTeacher(tid,field,value){
+    const t=root().teachers[tid];if(!t)return;
+    if(field==='meetingHours'||field==='manualHours')value=Math.max(0,Number(value)||0);
+    t[field]=value;
+    save();render();
   }
 
   function teacherHtml(){
     const list=teachers();
     if(!list.length)return '<div class="v71m-empty">Todavía no hay docentes cargados.</div>';
-    return `<div class="v71m-teachers">${list.map(t=>`<div class="v71m-teacher"><div><strong>${esc(t.name)}</strong>${t.email?`<small>${esc(t.email)}</small>`:''}<small>${assignmentCount(t.id)} asignaciones</small></div><button type="button" data-v71m-delete="${esc(t.id)}" title="Eliminar docente" aria-label="Eliminar ${esc(t.name)}">×</button></div>`).join('')}</div>`;
+    return `<div class="v71m-teachers">${list.map(t=>{
+      const s=stats(t),status=s.over?'over':s.free===0?'full':'open';
+      return `<article class="v71m-teacher ${status}" draggable="true" data-v71m-teacher-drag="${esc(t.id)}">
+        <div class="v71m-teacher-main">
+          <strong>⠿ ${esc(t.name)}</strong>
+          <small>${esc(t.dni||'Sin DNI')}${t.email?` · ${esc(t.email)}`:''}</small>
+          <div class="v71m-cargo-line">
+            <label>Cargo
+              <select data-v71m-edit="cargoType" data-teacher="${esc(t.id)}">
+                ${['TC','TP1','TP2','TP3','TP4','POR_HORAS'].map(x=>`<option value="${x}" ${t.cargoType===x?'selected':''}>${x==='POR_HORAS'?'Por horas':x}</option>`).join('')}
+              </select>
+            </label>
+            ${t.cargoType==='POR_HORAS'?`<label>HC<input type="number" min="0" step="1" value="${esc(t.manualHours||0)}" data-v71m-edit="manualHours" data-teacher="${esc(t.id)}"></label>`:''}
+            <label>Reunión HC<input type="number" min="0" step="1" value="${esc(meetingHours(t))}" data-v71m-edit="meetingHours" data-teacher="${esc(t.id)}"></label>
+          </div>
+        </div>
+        <div class="v71m-hours">
+          <span><b>${s.nominal}</b> bolsa</span>
+          <span><b>${s.front}</b> frente a curso</span>
+          <span><b>${s.liberated}</b> liberadas</span>
+          <span><b>${s.meeting}</b> reunión</span>
+          <span class="${s.over?'bad':''}"><b>${s.free}</b> disponibles</span>
+        </div>
+        <button type="button" data-v71m-delete="${esc(t.id)}" title="Eliminar docente" aria-label="Eliminar ${esc(t.name)}">×</button>
+      </article>`;
+    }).join('')}</div>`;
   }
 
   function courseGroups(){
@@ -71,15 +121,17 @@
     if(!groups.length)return `<section class="card v48-section v71o-assignment"><div class="eyebrow">Asignación por materia</div><h2>Materias del plan</h2><div class="v71m-empty">Todavía no hay materias disponibles desde Fase 1.</div></section>`;
     if(!selectedCourseKey||!groups.some(g=>g.key===selectedCourseKey))selectedCourseKey=groups[0].key;
     const group=groups.find(g=>g.key===selectedCourseKey)||groups[0];
-    const list=teachers();
     return `<section class="card v48-section v71o-assignment">
-      <div class="eyebrow">Asignación por materia</div>
-      <h2>Asignar docentes</h2>
-      <p>Elegí un curso. Solo se cargan sus materias para mantener Gestión ágil.</p>
+      <div class="eyebrow">Asignación frente a curso</div>
+      <h2>Arrastrá un docente a la materia</h2>
+      <p>La carga horaria sale del plan. Gestión descuenta automáticamente esas HC de la bolsa del cargo.</p>
       <label class="v71o-course-label">Curso<select id="v71oCourseSelect">${groups.map(g=>`<option value="${esc(g.key)}" ${g.key===selectedCourseKey?'selected':''}>${esc(g.orientation)} · ${esc(g.course)}</option>`).join('')}</select></label>
       <div class="v71o-subject-list">${group.rows.map(row=>{
-        const current=root().assignments[row.instanceId]||'';
-        return `<div class="v71o-subject-row"><div><strong>${esc(row.name)}</strong><small>${row.hours==null?'HC pendiente':`${esc(row.hours)} HC`} · ${esc((row.locations||[]).join(' · ')||'Plan')}</small></div><select data-v71o-assignment="${esc(row.instanceId)}"><option value="">Sin asignar</option>${list.map(t=>`<option value="${esc(t.id)}" ${current===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div>`;
+        const tid=root().assignments[row.instanceId]||'',t=root().teachers[tid];
+        return `<div class="v71o-subject-row ${tid?'assigned':''}" data-v71-drop="${esc(row.instanceId)}">
+          <div><strong>${esc(row.name)}</strong><small>${row.hours==null?'HC pendiente':`${esc(row.hours)} HC`} · ${esc((row.locations||[]).join(' · ')||'Plan')}</small></div>
+          <div class="v71o-dropzone">${t?`<span draggable="true" data-v71m-teacher-drag="${esc(t.id)}">⠿ ${esc(t.name)}</span><button type="button" data-v71-clear="${esc(row.instanceId)}">×</button>`:'Soltá un docente acá'}</div>
+        </div>`;
       }).join('')}</div>
     </section>`;
   }
@@ -90,14 +142,40 @@
     r.annualScheduleVersions=[];
     save();
     try{window.PCIAutoAreaCoincidenceV54?.deriveTeams?.()}catch{}
-    const all=rows(),assigned=all.filter(x=>r.assignments[x.instanceId]).length;
-    const summary=$('v71mAssignedSummary');if(summary)summary.innerHTML=`<strong>${assigned}</strong>/${all.length} materias asignadas`;
-    ensureEntryButtons();
+    render();
   }
 
-  function bindAssignments(host){
-    $('v71oCourseSelect')?.addEventListener('change',e=>{selectedCourseKey=e.target.value;render()});
-    host.querySelectorAll('[data-v71o-assignment]').forEach(sel=>sel.addEventListener('change',()=>setAssignment(sel.dataset.v71oAssignment,sel.value)));
+  function bindDrag(host){
+    host.querySelectorAll('[data-v71m-teacher-drag]').forEach(el=>{
+      el.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',`teacher:${el.dataset.v71mTeacherDrag}`);e.dataTransfer.effectAllowed='move'});
+    });
+    host.querySelectorAll('[data-v71-drop]').forEach(z=>{
+      z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('dragover')});
+      z.addEventListener('dragleave',()=>z.classList.remove('dragover'));
+      z.addEventListener('drop',e=>{
+        e.preventDefault();z.classList.remove('dragover');
+        const raw=e.dataTransfer.getData('text/plain')||'';
+        if(!raw.startsWith('teacher:'))return;
+        setAssignment(z.dataset.v71Drop,raw.slice(8));
+      });
+    });
+    host.querySelectorAll('[data-v71-clear]').forEach(b=>b.onclick=()=>setAssignment(b.dataset.v71Clear,''));
+  }
+
+  function bindTouchAssign(host){
+    let picked='';
+    host.querySelectorAll('[data-v71m-teacher-drag]').forEach(el=>{
+      el.addEventListener('click',e=>{
+        if(e.target.closest('select,input,button'))return;
+        picked=el.dataset.v71mTeacherDrag;
+        host.querySelectorAll('[data-v71m-teacher-drag]').forEach(x=>x.classList.toggle('picked',x.dataset.v71mTeacherDrag===picked));
+        toast('Docente seleccionado. Tocá una materia para asignarlo.');
+      });
+    });
+    host.querySelectorAll('[data-v71-drop]').forEach(z=>z.addEventListener('click',e=>{
+      if(e.target.closest('button'))return;
+      if(picked)setAssignment(z.dataset.v71Drop,picked);
+    }));
   }
 
   function render(){
@@ -108,16 +186,30 @@
     try{
       const all=rows(),assigned=all.filter(r=>root().assignments[r.instanceId]).length;
       const title=$('v48InstitutionalTitle');if(title)title.textContent=`${state.school||'Escuela'} · Gestión institucional`;
-      const hero=screen.querySelector('.hero p');if(hero)hero.textContent='Gestión liviana: asignación por materia, disponibilidad y horarios separados por curso y por docente. Fase 1 y Fase 2 permanecen intactas.';
+      const hero=screen.querySelector('.hero p');if(hero)hero.textContent='Planta docente simple: cargo como bolsa de horas, asignación frente a curso por drag & drop, disponibilidad y horarios.';
       host.innerHTML=`
-        <div class="v71m-summary"><span><strong>${teachers().length}</strong> docentes</span><span id="v71mAssignedSummary"><strong>${assigned}</strong>/${all.length} materias asignadas</span></div>
-        <section class="card v48-section v66-source-section v71m-source"><div class="eyebrow">Carga docente</div><h2>Asignación rápida</h2><p>Podés usar el Excel simple o asignar manualmente materia por materia en el bloque siguiente.</p></section>
-        <section class="card v48-section v71m-teacher-section"><div class="eyebrow">Plantel</div><h2>Docentes</h2><div class="v71m-add"><input id="v71LeanTeacherName" placeholder="Nombre y apellido"><input id="v71LeanTeacherEmail" placeholder="Email (opcional)"><button id="v71LeanAddTeacher" class="btn primary" type="button">Agregar</button></div>${teacherHtml()}</section>
+        <div class="v71m-summary"><span><strong>${teachers().length}</strong> docentes</span><span><strong>${assigned}</strong>/${all.length} materias asignadas</span><span>Reunión por defecto: <strong>3 HC</strong> editables</span></div>
+        <section class="card v48-section v71m-source"><div class="eyebrow">Punto de partida</div><h2>Escuela nueva o planta existente</h2><p>Podés empezar de cero cargando docentes abajo, o importar una planta ya armada con cargos y asignaciones desde el Excel simple.</p></section>
+        <section class="card v48-section v71m-teacher-section">
+          <div class="eyebrow">Plantel</div><h2>Docentes y bolsa de horas</h2>
+          <div class="v71m-add">
+            <input id="v71LeanTeacherName" placeholder="Nombre y apellido">
+            <input id="v71LeanTeacherDni" placeholder="DNI">
+            <input id="v71LeanTeacherEmail" placeholder="Mail">
+            <select id="v71LeanCargoType"><option>TC</option><option>TP1</option><option>TP2</option><option>TP3</option><option selected>TP4</option><option value="POR_HORAS">Por horas</option></select>
+            <input id="v71LeanManualHours" type="number" min="0" step="1" placeholder="HC" style="display:none">
+            <button id="v71LeanAddTeacher" class="btn primary" type="button">Agregar</button>
+          </div>
+          ${teacherHtml()}
+        </section>
         ${assignmentSectionHtml()}
         <div id="v71mDynamic"></div>`;
+      $('v71LeanCargoType')?.addEventListener('change',e=>{const x=$('v71LeanManualHours');if(x)x.style.display=e.target.value==='POR_HORAS'?'block':'none'});
       $('v71LeanAddTeacher')?.addEventListener('click',addTeacher);
       host.querySelectorAll('[data-v71m-delete]').forEach(b=>b.addEventListener('click',()=>deleteTeacher(b.dataset.v71mDelete)));
-      bindAssignments(host);
+      host.querySelectorAll('[data-v71m-edit]').forEach(el=>el.addEventListener('change',()=>updateTeacher(el.dataset.teacher,el.dataset.v71mEdit,el.value)));
+      $('v71oCourseSelect')?.addEventListener('change',e=>{selectedCourseKey=e.target.value;render()});
+      bindDrag(host);bindTouchAssign(host);
       setTimeout(()=>{
         try{window.PCISimpleAssignmentExcelV71?.render?.()}catch(e){console.warn('V71P excel',e)}
         try{window.PCIAvailabilityPreferencesV60?.render?.()}catch(e){console.warn('V71P availability',e)}
@@ -127,32 +219,27 @@
     }finally{rendering=false}
   }
 
-  async function openManagement(){
-    await ensureHours();
-    window.screen?.('institutional');
-    setTimeout(render,40);
-  }
+  async function openManagement(){await ensureHours();window.screen?.('institutional');setTimeout(render,40)}
 
   function ensureEntryButtons(){
     const list=$('pciList');
     if(list){
       let card=$('v71LeanHomeEntry');if(!card){card=document.createElement('section');card.id='v71LeanHomeEntry';card.className='card v71n-entry-card';list.after(card)}
       const all=rows(),assigned=all.filter(r=>root().assignments[r.instanceId]).length;
-      card.innerHTML=`<div><div class="eyebrow">Nivel escuela</div><h2>Gestión institucional</h2><p>Docentes, asignación por materia, disponibilidad y horarios por curso/docente.</p><small>${teachers().length} docentes · ${assigned}/${all.length} materias asignadas</small></div><button type="button" class="btn primary" data-v71n-open>Abrir Gestión</button>`;
+      card.innerHTML=`<div><div class="eyebrow">Nivel escuela</div><h2>Gestión institucional</h2><p>Docentes, cargos, asignaciones, disponibilidad y horarios.</p><small>${teachers().length} docentes · ${assigned}/${all.length} materias asignadas</small></div><button type="button" class="btn primary" data-v71n-open>Abrir Gestión</button>`;
       card.querySelector('[data-v71n-open]').onclick=openManagement;
     }
     const grid=document.querySelector('#panel .phase-grid');
     if(grid){
       let card=$('v71LeanPanelEntry');if(!card){card=document.createElement('article');card.id='v71LeanPanelEntry';card.className='card phase v71n-panel-entry';grid.appendChild(card)}
-      card.innerHTML='<div class="eyebrow">Gestión</div><h2>Gestión institucional</h2><p>Planta docente, asignación por materia, disponibilidad y horarios.</p><button type="button" class="btn primary" data-v71n-open>Entrar</button>';
+      card.innerHTML='<div class="eyebrow">Gestión</div><h2>Gestión institucional</h2><p>Planta docente, cargos, asignación frente a curso, disponibilidad y horarios.</p><button type="button" class="btn primary" data-v71n-open>Entrar</button>';
       card.querySelector('[data-v71n-open]').onclick=openManagement;
     }
   }
 
   async function install(){
     const a=api();if(a)a.renderInstitutional=render;
-    await ensureHours();
-    ensureEntryButtons();
+    await ensureHours();ensureEntryButtons();
     const list=$('pciList');if(list&&!entryObserver){entryObserver=new MutationObserver(()=>setTimeout(ensureEntryButtons,50));entryObserver.observe(list,{childList:true})}
     if($('institutional')?.classList.contains('active'))render();
   }
@@ -166,14 +253,16 @@
   style.textContent=`
     .v71m-summary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.v71m-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:.6rem;color:var(--muted)}.v71m-summary strong{color:var(--ink)}
     .v71m-source{padding:14px!important}.v71m-source h2,.v71m-teacher-section h2,.v71o-assignment h2{margin:3px 0 4px!important}
-    .v71m-add{display:grid;grid-template-columns:minmax(160px,1fr) minmax(170px,1fr) auto;gap:7px;margin-top:10px}.v71m-add input{min-width:0;padding:9px;border:1px solid var(--line);border-radius:9px}
-    .v71m-teachers{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:7px;margin-top:10px}.v71m-teacher{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--band)}.v71m-teacher strong{display:block;font-size:.7rem}.v71m-teacher small{display:block;margin-top:2px;font-size:.52rem;color:var(--muted)}.v71m-teacher button{flex:0 0 30px;width:30px;height:30px;border:1px solid #ddb7bf;border-radius:50%;background:#fff5f6;color:var(--danger);font-size:1.05rem;font-weight:900;line-height:1;cursor:pointer}.v71m-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;margin-top:10px;color:var(--muted);font-size:.62rem}
-    .v71o-course-label{display:grid;gap:5px;margin-top:10px;max-width:420px;font-size:.6rem;font-weight:850}.v71o-course-label select{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.v71o-subject-list{display:grid;gap:7px;margin-top:10px}.v71o-subject-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,260px);gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--band)}.v71o-subject-row strong{display:block;font-size:.68rem}.v71o-subject-row small{display:block;margin-top:2px;font-size:.52rem;color:var(--muted)}.v71o-subject-row select{width:100%;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+    .v71m-add{display:grid;grid-template-columns:1.3fr .7fr 1fr .55fr .45fr auto;gap:7px;margin-top:10px}.v71m-add input,.v71m-add select{min-width:0;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}
+    .v71m-teachers{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px;margin-top:10px}.v71m-teacher{position:relative;padding:10px 42px 10px 10px;border:1px solid var(--line);border-radius:12px;background:var(--band);cursor:grab}.v71m-teacher.picked{outline:3px solid var(--mint)}.v71m-teacher.over{border-color:#e0bdc5;background:var(--danger-soft)}.v71m-teacher strong{display:block;font-size:.72rem}.v71m-teacher small{display:block;margin-top:2px;font-size:.52rem;color:var(--muted)}.v71m-teacher>button{position:absolute;right:8px;top:8px;width:28px;height:28px;border:1px solid #ddb7bf;border-radius:50%;background:#fff5f6;color:var(--danger);font-size:1rem;font-weight:900}.v71m-cargo-line{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.v71m-cargo-line label{display:flex;align-items:center;gap:4px;font-size:.52rem;font-weight:800}.v71m-cargo-line select,.v71m-cargo-line input{width:auto;max-width:92px;padding:5px;border:1px solid var(--line);border-radius:7px;background:#fff}.v71m-hours{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px}.v71m-hours span{padding:5px;border-radius:8px;background:#fff;font-size:.5rem;text-align:center}.v71m-hours b{display:block;font-size:.68rem}.v71m-hours .bad{background:var(--danger-soft);color:var(--danger)}
+    .v71m-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;margin-top:10px;color:var(--muted);font-size:.62rem}
+    .v71o-course-label{display:grid;gap:5px;margin-top:10px;max-width:420px;font-size:.6rem;font-weight:850}.v71o-course-label select{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.v71o-subject-list{display:grid;gap:7px;margin-top:10px}.v71o-subject-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--band)}.v71o-subject-row.dragover{outline:3px solid var(--mint)}.v71o-subject-row strong{display:block;font-size:.68rem}.v71o-subject-row small{display:block;margin-top:2px;font-size:.52rem;color:var(--muted)}.v71o-dropzone{min-height:42px;border:1.5px dashed #9dafbb;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:7px;padding:7px;color:var(--muted);font-size:.58rem;font-weight:800}.v71o-dropzone span{color:var(--ink);cursor:grab}.v71o-dropzone button{width:25px;height:25px;border:0;border-radius:50%;background:var(--danger-soft);color:var(--danger);font-weight:900}
     .v66-assignment-section,.v48-table-wrap{display:none!important}
     .v71n-entry-card{margin-top:16px;padding:18px;display:flex;justify-content:space-between;gap:16px;align-items:center;border-color:#9edfd7;background:linear-gradient(135deg,#f7fffd,#edf8f7)}.v71n-entry-card h2{margin:4px 0}.v71n-entry-card p{margin:0;color:var(--muted);font-size:.72rem}.v71n-entry-card small{display:block;margin-top:7px;color:var(--muted);font-size:.58rem}.v71n-entry-card>.btn{flex:0 0 auto}
-    @media(max-width:780px){.v71m-add{grid-template-columns:1fr}.v71m-add .btn{width:100%}.v71m-teachers{grid-template-columns:1fr}.v71o-subject-row{grid-template-columns:1fr}.v71n-entry-card{align-items:stretch;flex-direction:column}.v71n-entry-card>.btn{width:100%}}
+    @media(max-width:900px){.v71m-add{grid-template-columns:1fr 1fr}.v71m-add .btn{grid-column:1/-1}.v71m-hours{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:780px){.v71m-add{grid-template-columns:1fr}.v71m-add .btn{width:100%;grid-column:auto}.v71m-teachers{grid-template-columns:1fr}.v71o-subject-row{grid-template-columns:1fr}.v71n-entry-card{align-items:stretch;flex-direction:column}.v71n-entry-card>.btn{width:100%}}
   `;
   document.head.appendChild(style);
 
-  window.PCILeanManagementV71={render,deleteTeacher,addTeacher,ensureEntryButtons,openManagement,setAssignment,ensureHours};
+  window.PCILeanManagementV71={render,deleteTeacher,addTeacher,ensureEntryButtons,openManagement,setAssignment,ensureHours,stats};
 })();
