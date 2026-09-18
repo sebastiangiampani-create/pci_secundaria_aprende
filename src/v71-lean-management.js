@@ -286,7 +286,14 @@
     }finally{rendering=false}
   }
 
-  async function openManagement(){await ensureHours();window.screen?.('institutional');setTimeout(render,40)}
+  async function openManagement(){
+    await ensureHours();
+    window.screen?.('institutional');
+    setTimeout(()=>{
+      render();
+      setTimeout(()=>window.PCIManagementHomeV73?.goHome?.(),160);
+    },40);
+  }
 
   function ensureEntryButtons(){
     const list=$('pciList');
