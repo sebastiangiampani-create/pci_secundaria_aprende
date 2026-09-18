@@ -9,12 +9,15 @@
       #proposal .v28-hero{box-sizing:border-box}
 
       #pciGlobalDock{position:sticky;top:8px;z-index:110;display:flex;justify-content:center;margin:8px auto 18px;pointer-events:none}
-      #pciGlobalDock .pci-dock-inner{display:flex;align-items:center;gap:6px;max-width:min(920px,calc(100vw - 24px));padding:7px;border:1px solid #d7e0e7;border-radius:999px;background:rgba(255,255,255,.94);box-shadow:0 10px 30px rgba(18,57,92,.12);backdrop-filter:blur(12px);overflow-x:auto;scrollbar-width:none;pointer-events:auto}
+      #pciGlobalDock .pci-dock-inner{display:flex;align-items:center;justify-content:center;gap:2px;max-width:min(920px,calc(100vw - 24px));padding:7px 10px;border:1px solid #d7e0e7;border-radius:22px;background:rgba(255,255,255,.97);box-shadow:0 10px 30px rgba(18,57,92,.12);backdrop-filter:blur(12px);overflow-x:auto;scrollbar-width:none;pointer-events:auto}
       #pciGlobalDock .pci-dock-inner::-webkit-scrollbar{display:none}
-      #pciGlobalDock button{flex:0 0 auto;min-height:36px;padding:8px 12px;border:0;border-radius:999px;background:transparent;color:#12395c;font:800 .76rem/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;white-space:nowrap}
+      #pciGlobalDock button{flex:0 0 auto;min-height:46px;padding:8px 14px;border:0;border-radius:999px;background:transparent;color:#12395c;font:800 .72rem/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:7px}
       #pciGlobalDock button:hover{background:#eef4f7}
       #pciGlobalDock button.is-active{background:#12395c;color:#fff}
-      #pciGlobalDock button.pci-dock-back{border:1px solid #d7e0e7;background:#fff}
+      #pciGlobalDock button.pci-dock-back{border:1px solid #d7e0e7;background:#f7fafc;margin-right:4px}
+      #pciGlobalDock button+button{border-left:1px solid #edf1f4;border-radius:0}
+      #pciGlobalDock button.is-active{border-radius:999px}
+      #pciGlobalDock .pci-dock-icon{font-size:1rem;font-weight:900;line-height:1}
       #pciGlobalDock[hidden]{display:none!important}
 
       @media(max-width:760px){
@@ -33,8 +36,10 @@
         #proposal .v28-selectbar{grid-template-columns:1fr!important}
         #proposal .v28-selectbar .v28-btn{width:100%!important}
         #pciGlobalDock{position:fixed;top:auto;left:0;right:0;bottom:8px;margin:0;z-index:150;padding:0 8px}
-        #pciGlobalDock .pci-dock-inner{width:100%;max-width:none;justify-content:flex-start;border-radius:18px;padding:6px;box-sizing:border-box}
-        #pciGlobalDock button{min-height:44px;padding:10px 13px;font-size:.72rem}
+        #pciGlobalDock .pci-dock-inner{width:100%;max-width:none;justify-content:space-between;border-radius:20px;padding:6px;box-sizing:border-box}
+        #pciGlobalDock button{min-height:48px;padding:9px 11px;font-size:.68rem}
+        #pciGlobalDock .pci-dock-icon{font-size:1.05rem}
+        #pciGlobalDock button[data-dock="institutional"]{display:none}
       }
     `;document.head.appendChild(style);
   }
@@ -104,11 +109,11 @@
     if(!dock){
       dock=document.createElement('nav');dock.id='pciGlobalDock';dock.setAttribute('aria-label','Navegación principal del PCI');
       dock.innerHTML=`<div class="pci-dock-inner">
-        <button type="button" class="pci-dock-back" data-dock="back">← Volver</button>
-        <button type="button" data-dock="panel">Panel</button>
-        <button type="button" data-dock="offer">Mapa de la Oferta</button>
-        <button type="button" data-dock="proposal">Propuesta Curricular</button>
-        <button type="button" data-dock="institutional">Gestión</button>
+        <button type="button" class="pci-dock-back" data-dock="back"><span class="pci-dock-icon">←</span><span>Volver</span></button>
+        <button type="button" data-dock="panel"><span class="pci-dock-icon">⌂</span><span>Panel</span></button>
+        <button type="button" data-dock="offer"><span class="pci-dock-icon">◇</span><span>Mapa de la Oferta</span></button>
+        <button type="button" data-dock="proposal"><span class="pci-dock-icon">△</span><span>Propuesta Curricular</span></button>
+        <button type="button" data-dock="institutional"><span class="pci-dock-icon">▦</span><span>Gestión</span></button>
       </div>`;
       const header=document.querySelector('header');
       if(header?.parentNode)header.insertAdjacentElement('afterend',dock);else document.body.prepend(dock);
