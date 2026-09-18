@@ -1,6 +1,6 @@
 (() => {
   const $=id=>document.getElementById(id);
-  let observer=null,timer=null,importing=false;
+  let timer=null,importing=false;
 
   function root(){
     state.institutional=state.institutional||{};
@@ -205,11 +205,7 @@
   }
 
   function refresh(){clearTimeout(timer);timer=setTimeout(render,80)}
-  function start(){
-    const host=$('v48InstitutionalContent');
-    if(host&&!observer){observer=new MutationObserver(refresh);observer.observe(host,{childList:true,subtree:false})}
-    refresh();
-  }
+  function start(){refresh();}
   window.addEventListener('pci-app-ready',()=>setTimeout(start,700));
   document.addEventListener('click',e=>{if(e.target.closest('[data-v71n-open],#openInstitutional,#openInstitutionalGeneral'))setTimeout(start,250)},true);
   setTimeout(start,1500);
