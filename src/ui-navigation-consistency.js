@@ -19,6 +19,7 @@
       #pciGlobalDock button.is-active{border-radius:999px}
       #pciGlobalDock .pci-dock-icon{font-size:1rem;font-weight:900;line-height:1}
       #pciGlobalDock[hidden],#pciGlobalDock button[hidden]{display:none!important}
+      #institutional > .back,#institutional > .pci-backbar{display:none!important}
       .screen>.back{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:8px 12px!important;margin:0 0 12px!important;border:1px solid #d7e0e7!important;border-radius:999px!important;background:#fff!important;box-shadow:0 4px 12px rgba(18,57,92,.05);font-weight:800!important;color:#12395c!important}
 
       @media(max-width:760px){
