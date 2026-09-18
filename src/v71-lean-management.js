@@ -103,7 +103,7 @@
           <div class="v71m-cargo-line">
             <label>Cargo
               <select data-v71m-edit="cargoType" data-teacher="${esc(t.id)}">
-                ${['TC','TP1','TP2','TP3','TP4','POR_HORAS'].map(x=>`<option value="${x}" ${t.cargoType===x?'selected':''}>${x==='POR_HORAS'?'Por horas':x}</option>`).join('')}
+                ${['TC','TP1','TP2','TP3','TP4','POR_HORAS'].map(x=>`<option value="${x}" ${t.cargoType===x?'selected':''}>${x==='POR_HORAS'?'Por horas':`${x} · ${CARGOS[x]} HC`}</option>`).join('')}
               </select>
             </label>
             ${t.cargoType==='POR_HORAS'?`<label>HC<input type="number" min="0" step="1" value="${esc(t.manualHours||0)}" data-v71m-edit="manualHours" data-teacher="${esc(t.id)}"></label>`:''}
@@ -221,7 +221,7 @@
             <input id="v71LeanTeacherName" placeholder="Nombre y apellido">
             <input id="v71LeanTeacherDni" placeholder="DNI">
             <input id="v71LeanTeacherEmail" placeholder="Mail">
-            <select id="v71LeanCargoType"><option>TC</option><option>TP1</option><option>TP2</option><option>TP3</option><option selected>TP4</option><option value="POR_HORAS">Por horas</option></select>
+            <select id="v71LeanCargoType"><option value="TC">TC · 36 HC</option><option value="TP1">TP1 · 30 HC</option><option value="TP2">TP2 · 24 HC</option><option value="TP3">TP3 · 18 HC</option><option value="TP4" selected>TP4 · 12 HC</option><option value="POR_HORAS">Por horas · ingresar HC</option></select>
             <input id="v71LeanManualHours" type="number" min="0" step="1" placeholder="HC" style="display:none">
             <button id="v71LeanAddTeacher" class="btn primary" type="button">Agregar</button>
           </div>
