@@ -1,6 +1,6 @@
 (() => {
   const $=id=>document.getElementById(id);
-  let observer=null,timer=null,activeKey='home';
+  let observer=null,timer=null,activeKey='home',applying=false;
 
   const defs=[
     {key:'docentes',title:'Docentes y cargos',desc:'Planta docente, cargos, bolsas de horas y carga disponible.',icon:'👥',
@@ -134,7 +134,10 @@
   function goHome(){activeKey='home';applyView();window.scrollTo({top:0,behavior:'smooth'})}
 
   function applyView(){
-    const h=host();if(!h||!visibleManagement())return;
+    const h=host();if(!h||!visibleManagement()||applying)return;
+    applying=true;
+    if(observer)observer.disconnect();
+    try{
     renderHome();
     const home=$('v73ManagementHome'),bar=ensureToolbar();
     const allChildren=[...h.children].filter(x=>x!==home&&x!==bar);
@@ -144,9 +147,7 @@
       if(home)home.classList.remove('v73-hidden');
       if(bar)bar.classList.add('v73-hidden');
       document.body.classList.add('v73-management-home-active');
-      return;
-    }
-
+    } else {
     document.body.classList.remove('v73-management-home-active');
     if(home)home.classList.add('v73-hidden');
     const def=defs.find(x=>x.key===activeKey);
@@ -156,6 +157,11 @@
       bar.classList.remove('v73-hidden');
       bar.innerHTML=`<button type="button" data-v73-home>← Inicio de Gestión</button><div><span>Gestión institucional</span><strong>${def?.title||''}</strong></div>`;
       bar.querySelector('[data-v73-home]').onclick=goHome;
+    }
+    }
+    } finally {
+      applying=false;
+      if(observer&&h)observer.observe(h,{childList:true,subtree:false});
     }
   }
 
