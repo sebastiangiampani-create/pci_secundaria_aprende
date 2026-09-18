@@ -82,7 +82,6 @@
 
   function targetFor(section){
     if(section?.id==='proposal') return {label:'Volver',action:proposalBack};
-    if(section?.id==='institutional') return {label:'Volver al inicio',action:goHome};
     if(section?.id==='offer') return {label:'Volver al panel',action:goPanel};
     return null;
   }
@@ -129,12 +128,13 @@
     const current=currentScreen();
     dock.hidden=!current;
     const back=dock.querySelector('[data-dock="back"]');
-    if(back)back.hidden=current==='home'||current==='panel';
+    if(back)back.hidden=current==='home'||current==='panel'||current==='institutional';
     dock.querySelectorAll('[data-dock]').forEach(b=>b.classList.toggle('is-active',b.dataset.dock===current));
   }
 
   function refresh(){
-    ['offer','proposal','institutional'].forEach(id=>ensureBack(document.getElementById(id)));
+    ['offer','proposal'].forEach(id=>ensureBack(document.getElementById(id)));
+    document.querySelector('#institutional > .pci-backbar')?.remove();
     ensureDock();
   }
 
