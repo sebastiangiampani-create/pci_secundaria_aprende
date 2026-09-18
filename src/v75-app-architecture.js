@@ -36,6 +36,17 @@
       if(/implementaci[oó]n institucional|gesti[oó]n institucional/i.test(h))card.style.display='none';
       if(/propuesta curricular/i.test(h)){const x=card.querySelector('h2');if(x)x.textContent='Desarrollo Curricular'}
     });
+
+    let printEntry=$('v75PciPrintEntry');
+    if(!printEntry){
+      printEntry=document.createElement('div');
+      printEntry.id='v75PciPrintEntry';
+      printEntry.className='v75-pci-print-entry';
+      printEntry.innerHTML='<div><div class="eyebrow">Documentación curricular</div><strong>Impresión del PCI</strong><span>Generá la versión del PCI de esta orientación.</span></div><button type="button" class="btn soft" data-v75-print-pci>Imprimir PCI</button>';
+      const grid=panel.querySelector('.phase-grid');
+      grid?.after(printEntry);
+    }
+    printEntry.querySelector('[data-v75-print-pci]')?.addEventListener('click',()=>document.getElementById('printBtn')?.click());
   }
   function decorate(){ensureAreas();cleanPanel()}
   function refresh(){clearTimeout(timer);timer=setTimeout(decorate,60)}
@@ -50,8 +61,10 @@
     .v75-area{margin:28px 0 10px;padding:18px 20px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(135deg,#f7fafc,#edf4f8)}
     .v75-area-head{display:flex;justify-content:space-between;align-items:center;gap:18px}.v75-area h2{margin:4px 0}.v75-area p{margin:0;color:var(--muted);font-size:.7rem}
     .v75-flow{padding:8px 11px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:.58rem;font-weight:900;white-space:nowrap}
+    #printBtn{display:none!important}
+    .v75-pci-print-entry{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:12px;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:#fff}.v75-pci-print-entry strong{display:block;font-size:.78rem}.v75-pci-print-entry span{display:block;margin-top:3px;color:var(--muted);font-size:.58rem}
     .v75-management{margin-top:28px!important}.v75-grading{margin-top:12px;padding:20px;display:flex;justify-content:space-between;align-items:center;gap:18px;border-radius:22px;background:#f7f8fa}
     .v75-grading h2{margin:4px 0}.v75-grading p{margin:0;color:var(--muted);font-size:.7rem}.v75-grading small{display:block;margin-top:7px;color:var(--muted);font-size:.56rem}
-    @media(max-width:760px){.v75-area-head,.v75-grading{align-items:flex-start;flex-direction:column}.v75-flow{white-space:normal}.v75-grading .btn{width:100%}}
+    @media(max-width:760px){.v75-area-head,.v75-grading,.v75-pci-print-entry{align-items:flex-start;flex-direction:column}.v75-pci-print-entry .btn{width:100%}.v75-flow{white-space:normal}.v75-grading .btn{width:100%}}
   `;document.head.appendChild(style);
 })();
