@@ -6,7 +6,7 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    .v58-partial-note{margin:0 0 14px;padding:11px 13px;border:1px solid #d8c68e;border-radius:12px;background:#fff9e8;color:#675317;font-size:.66rem;line-height:1.45}
+    .v58-partial-note{position:relative;z-index:3;display:block!important;margin:12px 0 14px;padding:11px 13px;border:1px solid #d8c68e;border-radius:12px;background:#fff9e8;color:#675317;font-size:.66rem;line-height:1.45}
     .v58-partial-note strong{font-weight:900}.v58-ready-note{margin:0 0 14px;padding:10px 12px;border-radius:11px;background:var(--mint-soft);color:var(--mint-dark);font-size:.64rem;line-height:1.4}
   `;
   document.head.appendChild(style);
@@ -45,8 +45,11 @@
     if(isValidated())return;
     const note=document.createElement('div');note.id='v58ProposalNote';note.className='v58-partial-note';
     note.innerHTML='<strong>Fase 1 en construcción.</strong> Podés trabajar la Fase 2 con los espacios que ya están definidos. Los contenidos, objetivos y planes cargados se conservan; si después cambia la estructura de Fase 1, la Fase 2 continúa desde la estructura vigente sin borrar el desarrollo ya realizado.';
-    const hero=proposal.querySelector('.hero');
-    if(hero)hero.after(note);else proposal.prepend(note);
+    const liveHero=proposal.querySelector('#v28home .v28-hero:not([hidden]),#v28board .v28-hero:not([hidden]),#v28matrix .v28-hero:not([hidden])');
+    const shell=proposal.querySelector('.v28');
+    if(liveHero)liveHero.after(note);
+    else if(shell)shell.prepend(note);
+    else proposal.prepend(note);
   }
 
   function institutionalNote(wasValidated){
