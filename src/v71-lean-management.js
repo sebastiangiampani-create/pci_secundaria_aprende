@@ -38,6 +38,21 @@
     return{nominal,front,liberated,meeting,free,over:Math.max(0,-free)};
   }
   function assignmentCount(tid){return assignedRows(tid).length}
+  function summaryStats(){
+    const list=teachers(),all=rows(),assigned=all.filter(r=>root().assignments[r.instanceId]).length;
+    const teacherStats=list.map(t=>({t,s:stats(t)}));
+    return{
+      teachers:list.length,
+      assigned,
+      total:all.length,
+      unassigned:Math.max(0,all.length-assigned),
+      over:teacherStats.filter(x=>x.s.over>0).length,
+      available:teacherStats.filter(x=>x.s.free>0).length,
+      full:teacherStats.filter(x=>x.s.free===0&&!x.s.over).length,
+      front:teacherStats.reduce((n,x)=>n+x.s.front,0),
+      liberated:teacherStats.reduce((n,x)=>n+x.s.liberated,0)
+    };
+  }
 
   function deleteTeacher(tid){
     const r=root(),t=r.teachers[tid];if(!t)return;
@@ -84,6 +99,7 @@
         <div class="v71m-teacher-main">
           <strong>⠿ ${esc(t.name)}</strong>
           <small>${esc(t.dni||'Sin DNI')}${t.email?` · ${esc(t.email)}`:''}</small>
+          <small><strong>${assignmentCount(t.id)}</strong> asignaciones curriculares</small>
           <div class="v71m-cargo-line">
             <label>Cargo
               <select data-v71m-edit="cargoType" data-teacher="${esc(t.id)}">
@@ -184,11 +200,20 @@
     if(!screen||!host||!screen.classList.contains('active'))return;
     rendering=true;
     try{
-      const all=rows(),assigned=all.filter(r=>root().assignments[r.instanceId]).length;
+      const all=rows(),assigned=all.filter(r=>root().assignments[r.instanceId]).length,sum=summaryStats();
       const title=$('v48InstitutionalTitle');if(title)title.textContent=`${state.school||'Escuela'} · Gestión institucional`;
       const hero=screen.querySelector('.hero p');if(hero)hero.textContent='Planta docente simple: cargo como bolsa de horas, asignación frente a curso por drag & drop, disponibilidad y horarios.';
       host.innerHTML=`
-        <div class="v71m-summary"><span><strong>${teachers().length}</strong> docentes</span><span><strong>${assigned}</strong>/${all.length} materias asignadas</span><span>Reunión por defecto: <strong>3 HC</strong> editables</span></div>
+        <div class="v71m-summary">
+          <span><strong>${sum.teachers}</strong> docentes</span>
+          <span><strong>${sum.assigned}</strong>/${sum.total} materias asignadas</span>
+          <span><strong>${sum.unassigned}</strong> sin asignar</span>
+          <span><strong>${sum.over}</strong> con sobreasignación</span>
+          <span><strong>${sum.available}</strong> con HC disponibles</span>
+          <span><strong>${sum.front}</strong> HC frente a curso</span>
+          <span><strong>${sum.liberated}</strong> HC liberadas</span>
+          <span>Reunión por defecto: <strong>3 HC</strong> editables</span>
+        </div>
         <section class="card v48-section v71m-source"><div class="eyebrow">Punto de partida</div><h2>Escuela nueva o planta existente</h2><p>Podés empezar de cero cargando docentes abajo, o importar una planta ya armada con cargos y asignaciones desde el Excel simple.</p></section>
         <section class="card v48-section v71m-teacher-section">
           <div class="eyebrow">Plantel</div><h2>Docentes y bolsa de horas</h2>
@@ -251,7 +276,7 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    .v71m-summary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.v71m-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:.6rem;color:var(--muted)}.v71m-summary strong{color:var(--ink)}
+    .v71m-summary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.v71m-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:.6rem;color:var(--muted)}.v71m-summary strong{color:var(--ink)}.v71m-summary span:nth-child(4){border-color:#e0bdc5;background:var(--danger-soft);color:var(--danger)}
     .v71m-source{padding:14px!important}.v71m-source h2,.v71m-teacher-section h2,.v71o-assignment h2{margin:3px 0 4px!important}
     .v71m-add{display:grid;grid-template-columns:1.3fr .7fr 1fr .55fr .45fr auto;gap:7px;margin-top:10px}.v71m-add input,.v71m-add select{min-width:0;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}
     .v71m-teachers{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px;margin-top:10px}.v71m-teacher{position:relative;padding:10px 42px 10px 10px;border:1px solid var(--line);border-radius:12px;background:var(--band);cursor:grab}.v71m-teacher.picked{outline:3px solid var(--mint)}.v71m-teacher.over{border-color:#e0bdc5;background:var(--danger-soft)}.v71m-teacher strong{display:block;font-size:.72rem}.v71m-teacher small{display:block;margin-top:2px;font-size:.52rem;color:var(--muted)}.v71m-teacher>button{position:absolute;right:8px;top:8px;width:28px;height:28px;border:1px solid #ddb7bf;border-radius:50%;background:#fff5f6;color:var(--danger);font-size:1rem;font-weight:900}.v71m-cargo-line{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.v71m-cargo-line label{display:flex;align-items:center;gap:4px;font-size:.52rem;font-weight:800}.v71m-cargo-line select,.v71m-cargo-line input{width:auto;max-width:92px;padding:5px;border:1px solid var(--line);border-radius:7px;background:#fff}.v71m-hours{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px}.v71m-hours span{padding:5px;border-radius:8px;background:#fff;font-size:.5rem;text-align:center}.v71m-hours b{display:block;font-size:.68rem}.v71m-hours .bad{background:var(--danger-soft);color:var(--danger)}
