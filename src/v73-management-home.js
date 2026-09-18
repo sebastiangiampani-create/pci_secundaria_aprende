@@ -7,7 +7,7 @@
       find:()=>[...document.querySelectorAll('#v48InstitutionalContent > .v71m-teacher-section')]},
     {key:'asignaciones',title:'Asignaciones',desc:'Asignación frente a curso desde las materias y agrupamientos del Mapa de la Oferta.',icon:'↔',
       find:()=>[...document.querySelectorAll('#v48InstitutionalContent > .v71o-assignment')]},
-    {key:'comisiones',title:'Comisiones y estudiantes',desc:'Listados por orientación, nivel y división heredados del Mapa de la Oferta.',icon:'▤',
+    {key:'comisiones',title:'Cursos, comisiones y estudiantes',desc:'Cursos y divisiones de la escuela, con sus listados de estudiantes.',icon:'▤',
       find:()=>[$('v72StudentsCommissions')].filter(Boolean)},
     {key:'equipos',title:'Equipos y reuniones',desc:'Equipos derivados de los agrupamientos reales y coincidencias semanales.',icon:'◎',
       find:()=>[$('v53Workload')].filter(Boolean)},
@@ -49,7 +49,7 @@
   function statusFor(key,m){
     if(key==='docentes')return `${m.teachers.length} docentes cargados`;
     if(key==='asignaciones')return `${m.assigned}/${m.total} espacios asignados`;
-    if(key==='comisiones')return `${m.loadedCommissions}/${m.commissions.length} comisiones · ${m.students} estudiantes`;
+    if(key==='comisiones')return `${m.commissions.length} cursos · ${m.students} estudiantes`;
     if(key==='equipos')return `${m.teams.length} equipos detectados`;
     if(key==='disponibilidad')return `${m.availCount}/${m.teachers.length} docentes configurados`;
     if(key==='horarios')return m.scheduleCount?'Horario generado':'Pendiente de generar';
@@ -125,11 +125,25 @@
     return bar;
   }
 
+  function prepareModule(key){
+    try{
+      if(key==='comisiones')window.PCIStudentsCommissionsV72?.render?.();
+      if(key==='disponibilidad')window.PCIAvailabilityPreferencesV60?.render?.();
+      if(key==='excel')window.PCISimpleAssignmentExcelV71?.render?.();
+      if(key==='respaldo')window.PCIInstitutionalExportV68?.decorate?.();
+      if(key==='horarios')window.PCIAnnualSchedulerV68?.render?.();
+      if(key==='equipos')window.PCIAutoAreaCoincidenceV54?.deriveTeams?.();
+    }catch(e){console.warn('V73 prepare module',key,e)}
+  }
+
   function openModule(key){
     activeKey=key;
     const def=defs.find(x=>x.key===key);if(!def)return;
-    applyView();
-    requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'smooth'}));
+    prepareModule(key);
+    setTimeout(()=>{
+      applyView();
+      requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'smooth'}));
+    },90);
   }
   function goHome(){activeKey='home';applyView();window.scrollTo({top:0,behavior:'smooth'})}
 
@@ -193,7 +207,8 @@
     .v73-danger{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid #ebc8cf;border-radius:16px;background:#fffafb}.v73-danger strong{display:block;color:var(--danger);font-size:.72rem}.v73-danger span{display:block;margin-top:3px;color:var(--muted);font-size:.58rem}.v73-danger button{border:1px solid #d7a8b2;border-radius:999px;background:#fff5f6;color:var(--danger);padding:8px 13px;font-weight:850}
     .v73-module-toolbar{position:sticky;top:8px;z-index:95;display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:9px 12px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.97);box-shadow:0 8px 22px rgba(18,57,92,.09);backdrop-filter:blur(10px)}
     .v73-module-toolbar button{border:1px solid var(--line);border-radius:999px;background:var(--band);color:var(--ink);padding:8px 12px;font-weight:850}.v73-module-toolbar span{display:block;color:var(--muted);font-size:.52rem}.v73-module-toolbar strong{display:block;font-size:.76rem}
-    .v73-management-home-active #v71ManagementNav{display:none!important}
+    #institutional #v71ManagementNav{display:none!important}
+    #institutional > .back[data-v48-panel],#institutional .v48-hero-actions{display:none!important}
     @media(max-width:1150px){.v73-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(max-width:850px){.v73-hero{grid-template-columns:1fr}.v73-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:600px){.v73-grid{grid-template-columns:1fr}.v73-hero{padding:18px;border-radius:20px}.v73-kpis{grid-template-columns:1fr 1fr}.v73-card{min-height:0}.v73-card button{width:100%}.v73-module-toolbar{top:6px}.v73-danger{align-items:stretch;flex-direction:column}.v73-danger button{width:100%}}
