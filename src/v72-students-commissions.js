@@ -14,13 +14,22 @@
   const keyOf=(orientation,year,division)=>`${orientation}|||${year}|||${division}`;
   const selectedOrientations=()=>Array.isArray(state.selected)?state.selected:[];
   const cfgApi=()=>window.PCICustomDivisionsV57||null;
+  const baseCfgApi=()=>window.PCIInstitutionalV48||null;
+  const defaultLabels=count=>Array.from({length:Math.max(0,Math.min(12,Number(count)||0))},(_,i)=>String.fromCharCode(65+i));
+
+  function labelsFor(orientation,year){
+    const custom=cfgApi()?.cfg?.(orientation);
+    const labels=custom?.divisionLabels?.[year];
+    if(Array.isArray(labels)&&labels.length)return labels;
+    const base=baseCfgApi()?.orientationConfig?.(orientation);
+    return defaultLabels(base?.courseCounts?.[year]??0);
+  }
 
   function commissionDefs(){
     const out=[];
     for(const orientation of selectedOrientations()){
-      const cfg=cfgApi()?.cfg?.(orientation);
       for(let year=1;year<=5;year++){
-        const labels=cfg?.divisionLabels?.[year]||[];
+        const labels=labelsFor(orientation,year);
         for(const division of labels){
           out.push({
             key:keyOf(orientation,year,division),
