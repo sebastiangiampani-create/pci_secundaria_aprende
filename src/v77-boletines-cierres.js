@@ -8,6 +8,7 @@
     ['publicado','Publicado']
   ];
   let selectedKey='';
+  let homeFilters={orientation:'',year:'',course:''};
 
   function root(){
     state.institutional=state.institutional||{};
@@ -155,6 +156,27 @@
     const host=$('v77Root');if(!host)return;
     const groups=closureGroups();
     const settings=root().grading.settings;
+
+    const orientations=[...new Set(groups.map(g=>g.orientation))].sort((a,b)=>String(a).localeCompare(String(b),'es'));
+    const years=[...new Set(groups.map(g=>Number(g.year)))].filter(Boolean).sort((a,b)=>a-b);
+    const courses=[...new Set(groups.map(g=>g.course))].sort((a,b)=>String(a).localeCompare(String(b),'es'));
+
+    const filtered=groups.filter(g=>
+      (!homeFilters.orientation||g.orientation===homeFilters.orientation)&&
+      (!homeFilters.year||String(g.year)===String(homeFilters.year))&&
+      (!homeFilters.course||g.course===homeFilters.course)
+    );
+
+    const byCourse=new Map();
+    for(const g of filtered){
+      const key=[g.orientation,g.course].join('|||');
+      if(!byCourse.has(key))byCourse.set(key,{orientation:g.orientation,course:g.course,year:g.year,groups:[]});
+      byCourse.get(key).groups.push(g);
+    }
+
+    const published=filtered.filter(g=>ensureClosure(g).status==='publicado').length;
+    const validated=filtered.filter(g=>['validado','publicado'].includes(ensureClosure(g).status)).length;
+
     host.innerHTML=`
       <div class="v77-topbar"><button class="btn soft" type="button" data-v77-home>← Inicio</button></div>
       <div class="v77-hero">
@@ -162,21 +184,50 @@
         <h1>Cierres y publicación</h1>
         <p>El cierre es único para todo el agrupamiento. Los docentes cargan; el equipo revisa; un responsable valida; recién después puede publicarse.</p>
       </div>
+
+      <section class="v77-browser">
+        <div class="v77-browser-head">
+          <div><div class="eyebrow">Navegación</div><h2>Buscar cierres y boletines</h2></div>
+          <button type="button" class="btn soft" data-v77-clear>Limpiar filtros</button>
+        </div>
+        <div class="v77-filters">
+          <label><span>Orientación</span><select data-v77-filter="orientation"><option value="">Todas</option>${orientations.map(v=>`<option value="${esc(v)}" ${homeFilters.orientation===v?'selected':''}>${esc(v)}</option>`).join('')}</select></label>
+          <label><span>Nivel</span><select data-v77-filter="year"><option value="">Todos</option>${years.map(v=>`<option value="${v}" ${String(homeFilters.year)===String(v)?'selected':''}>Nivel ${v}</option>`).join('')}</select></label>
+          <label><span>Comisión</span><select data-v77-filter="course"><option value="">Todas</option>${courses.map(v=>`<option value="${esc(v)}" ${homeFilters.course===v?'selected':''}>${esc(v)}</option>`).join('')}</select></label>
+        </div>
+        <div class="v77-summary">
+          <span><strong>${filtered.length}</strong> cierres</span>
+          <span><strong>${validated}</strong> validados</span>
+          <span><strong>${published}</strong> publicados</span>
+          <span><strong>${byCourse.size}</strong> comisiones visibles</span>
+        </div>
+      </section>
+
       <section class="card v77-settings">
         <div><div class="eyebrow">Familias y estudiantes</div><h2>Visibilidad</h2><p>Por defecto los criterios no son visibles.</p></div>
         <label><input type="checkbox" data-v77-criteria ${settings.showCriteriaToFamilies?'checked':''}> Mostrar criterios a familias y estudiantes</label>
       </section>
-      <div class="v77-grid">${groups.length?groups.map(g=>{
-        const c=ensureClosure(g),students=studentsFor(g.commissionKey),missing=students.filter(s=>!String(rowFor(c,s).final||'').trim()).length;
-        return `<article class="v77-card">
-          <div class="v77-card-head"><span>${esc(g.orientation)}</span><b>${esc(g.course)}</b></div>
-          <h3>${esc(g.groupName)}</h3>
-          <p>${esc(closureType(g))} · ${g.plans.length} planes</p>
-          <div class="v77-tags"><span class="status ${esc(c.status)}">${esc(statusLabel(c.status))}</span><span>${students.length-missing}/${students.length} cierres cargados</span></div>
-          <button type="button" class="btn primary" data-v77-open-closure="${esc(g.key)}">Abrir cierre</button>
-        </article>`;
-      }).join(''):'<div class="v77-empty">Todavía no hay planes de evaluación cargados. Cuando existan planes en Calificaciones, aparecerán acá.</div>'}</div>`;
+
+      <div class="v77-course-stack">${byCourse.size?[...byCourse.values()].map(block=>`
+        <section class="v77-course-block">
+          <header class="v77-course-head">
+            <div><small>${esc(block.orientation)}</small><h2>${esc(block.course)}</h2></div>
+            <span>Nivel ${esc(block.year)}</span>
+          </header>
+          <div class="v77-grid">${block.groups.map(g=>{
+            const c=ensureClosure(g),students=studentsFor(g.commissionKey),missing=students.filter(s=>!String(rowFor(c,s).final||'').trim()).length;
+            return `<article class="v77-card">
+              <div class="v77-card-head"><span>${esc(closureType(g))}</span><b>${g.plans.length} planes</b></div>
+              <h3>${esc(g.groupName)}</h3>
+              <div class="v77-tags"><span class="status ${esc(c.status)}">${esc(statusLabel(c.status))}</span><span>${students.length-missing}/${students.length} cierres cargados</span></div>
+              <button type="button" class="btn primary" data-v77-open-closure="${esc(g.key)}">Abrir cierre</button>
+            </article>`;
+          }).join('')}</div>
+        </section>`).join(''):'<div class="v77-empty"><strong>No hay resultados con estos filtros.</strong><span>Cambiá orientación, nivel o comisión para volver a ver los cierres disponibles.</span></div>'}</div>`;
+
     host.querySelector('[data-v77-home]').onclick=goHome;
+    host.querySelector('[data-v77-clear]').onclick=()=>{homeFilters={orientation:'',year:'',course:''};renderHome()};
+    host.querySelectorAll('[data-v77-filter]').forEach(s=>s.onchange=()=>{homeFilters[s.dataset.v77Filter]=s.value;renderHome()});
     host.querySelector('[data-v77-criteria]').onchange=e=>{settings.showCriteriaToFamilies=!!e.target.checked;save();toast('Configuración de visibilidad guardada.')};
     host.querySelectorAll('[data-v77-open-closure]').forEach(b=>b.onclick=()=>{selectedKey=b.dataset.v77OpenClosure;renderClosure()});
   }
@@ -267,11 +318,12 @@
 
   const style=document.createElement('style');style.textContent=`
     .v77-home-entry{margin-top:12px!important}.v77-topbar{margin-bottom:12px}.v77-hero{padding:24px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(135deg,#f6fafc,#eef6f4)}.v77-hero h1{margin:4px 0 5px}.v77-hero p{margin:0;color:var(--muted);font-size:.7rem}
+    .v77-browser{margin:14px 0;padding:16px;border:1px solid var(--line);border-radius:18px;background:#fff}.v77-browser-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.v77-browser-head h2{margin:4px 0 0}.v77-filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-top:12px}.v77-filters label{display:grid;gap:5px}.v77-filters span{font-size:.56rem;font-weight:900;color:var(--muted)}.v77-filters select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}.v77-summary{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.v77-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--band);font-size:.6rem}.v77-course-stack{display:grid;gap:18px;margin-top:14px}.v77-course-block{padding:16px;border:1px solid var(--line);border-radius:20px;background:#f9fbfc}.v77-course-head{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-bottom:12px}.v77-course-head small{display:block;color:var(--muted);font-size:.55rem}.v77-course-head h2{margin:3px 0 0}.v77-course-head>span{padding:6px 9px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:.54rem;font-weight:900}
     .v77-settings,.v77-workflow,.v77-table-card,.v77-preview{margin-top:14px;padding:17px}.v77-settings{display:flex;justify-content:space-between;align-items:center;gap:14px}.v77-settings h2,.v77-workflow h2,.v77-table-card h2,.v77-preview h2{margin:4px 0}.v77-settings p,.v77-preview p{margin:0;color:var(--muted);font-size:.64rem}
-    .v77-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:11px;margin-top:14px}.v77-card{padding:15px;border:1px solid var(--line);border-radius:17px;background:#fff}.v77-card-head{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.55rem}.v77-card h3{margin:8px 0 4px}.v77-card p{margin:0;color:var(--muted);font-size:.6rem}.v77-tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.v77-tags span{padding:5px 7px;border-radius:999px;background:var(--band);font-size:.52rem}.v77-tags .publicado{background:var(--ok-soft);color:var(--ok)}.v77-tags .validado{background:var(--mint-soft);color:var(--mint-dark)}.v77-empty,.v77-warning{margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}.v77-warning{border-color:#dfc476;background:#fff8df;color:#775b0c}
+    .v77-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.v77-card{padding:15px;border:1px solid var(--line);border-radius:17px;background:#fff}.v77-card-head{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.55rem}.v77-card h3{margin:8px 0 4px}.v77-card p{margin:0;color:var(--muted);font-size:.6rem}.v77-tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.v77-tags span{padding:5px 7px;border-radius:999px;background:var(--band);font-size:.52rem}.v77-tags .publicado{background:var(--ok-soft);color:var(--ok)}.v77-tags .validado{background:var(--mint-soft);color:var(--mint-dark)}.v77-empty,.v77-warning{margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}.v77-warning{border-color:#dfc476;background:#fff8df;color:#775b0c}
     .v77-workflow{display:grid;grid-template-columns:1fr minmax(220px,320px) auto;gap:12px;align-items:end}.v77-workflow label{display:grid;gap:5px;font-size:.58rem;font-weight:900}.v77-workflow select{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.v77-actions{display:flex;gap:6px;flex-wrap:wrap}
     .v77-table-wrap{overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px}.v77-table{width:100%;min-width:1100px;border-collapse:collapse;font-size:.58rem}.v77-table th,.v77-table td{padding:7px;border-bottom:1px solid var(--line);vertical-align:middle}.v77-table th{background:var(--band);text-align:left}.v77-table th small{display:block;margin-top:2px;color:var(--muted);font-weight:500}.v77-table input{width:100%;padding:7px;border:1px solid var(--line);border-radius:8px}
-    @media(max-width:760px){.v77-settings,.v77-workflow{grid-template-columns:1fr;align-items:stretch;flex-direction:column}.v77-actions{display:grid;grid-template-columns:1fr}.v77-actions .btn{width:100%}}
+    @media(max-width:980px){.v77-grid{grid-template-columns:1fr}.v77-filters{grid-template-columns:1fr 1fr}}@media(max-width:760px){.v77-browser-head,.v77-course-head{align-items:flex-start;flex-direction:column}.v77-filters{grid-template-columns:1fr}.v77-settings,.v77-workflow{grid-template-columns:1fr;align-items:stretch;flex-direction:column}.v77-actions{display:grid;grid-template-columns:1fr}.v77-actions .btn{width:100%}}
   `;document.head.appendChild(style);
 
   window.PCIBulletinsV77={open,renderHome,renderClosure,closureGroups};
