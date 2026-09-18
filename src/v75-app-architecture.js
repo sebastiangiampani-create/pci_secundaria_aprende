@@ -28,7 +28,7 @@
     const panel=$('panel');if(!panel)return;
     const hero=panel.querySelector('.hero');
     if(hero){
-      const p=hero.querySelector('p');if(p)p.textContent='Construí el PCI de esta orientación: primero organizá el Mapa de la Oferta y luego desarrollá la propuesta curricular.';
+      const p=hero.querySelector('p');if(p&&p.textContent!=='Construí el PCI de esta orientación: primero organizá el Mapa de la Oferta y luego desarrollá la propuesta curricular.')p.textContent='Construí el PCI de esta orientación: primero organizá el Mapa de la Oferta y luego desarrollá la propuesta curricular.';
     }
     panel.querySelectorAll('.phase-grid .phase').forEach(card=>{
       const h=card.querySelector('h2')?.textContent||'';
@@ -39,7 +39,11 @@
   function decorate(){ensureAreas();cleanPanel()}
   function refresh(){clearTimeout(timer);timer=setTimeout(decorate,60)}
   const observer=new MutationObserver(refresh);
-  function start(){const home=$('home');if(home)observer.observe(document.documentElement,{childList:true,subtree:true});decorate()}
+  function start(){
+    const home=$('home');
+    if(home)observer.observe(home,{childList:true,subtree:false});
+    decorate();
+  }
   window.addEventListener('pci-app-ready',()=>setTimeout(start,600));setTimeout(start,1300);
   const style=document.createElement('style');style.textContent=`
     .v75-area{margin:28px 0 10px;padding:18px 20px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(135deg,#f7fafc,#edf4f8)}
