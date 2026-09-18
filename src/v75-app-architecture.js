@@ -7,11 +7,12 @@
     let curricular=$('v75CurricularArea');
     if(!curricular){
       curricular=document.createElement('section');curricular.id='v75CurricularArea';curricular.className='v75-area v75-curricular';
-      const title=$('v74PciTitle');title?.before(curricular);
-      curricular.innerHTML='<div class="v75-area-head"><div><div class="eyebrow">1 · Desarrollo Curricular</div><h2>Construcción de los PCI</h2><p>La escuela define sus orientaciones y construye en cada una el Mapa de la Oferta y su Desarrollo Curricular.</p></div><span class="v75-flow">Mapa de la Oferta → Desarrollo Curricular</span></div>';
+      const setup=home.querySelector(':scope > .card.panel');
+      if(setup)setup.before(curricular);else pci.before(curricular);
+      curricular.innerHTML='<div class="v75-area-head"><div><div class="eyebrow">1 · Desarrollo Curricular</div><h2>Construcción de los PCI</h2><p>Primero se define la estructura curricular de la escuela. Desde acá se seleccionan las orientaciones y se construye, en cada una, el Mapa de la Oferta y su Desarrollo Curricular.</p></div><span class="v75-flow">Orientaciones → Mapa de la Oferta → Desarrollo Curricular</span></div>';
     }
-    const title=$('v74PciTitle');
-    if(title&&title.previousElementSibling!==curricular)curricular.after(title);
+    const setup=home.querySelector(':scope > .card.panel');
+    if(setup&&curricular.nextElementSibling!==setup)setup.before(curricular);
     let management=$('v71LeanHomeEntry');
     if(management){
       management.classList.add('v75-management');
