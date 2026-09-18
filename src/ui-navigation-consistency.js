@@ -46,16 +46,28 @@
         <button type="button" data-dock="home"><span class="pci-dock-icon">⌂</span><span>Inicio</span></button>
         <button type="button" data-dock="offer"><span class="pci-dock-icon">◇</span><span>Mapa de la Oferta</span></button>
         <button type="button" data-dock="proposal"><span class="pci-dock-icon">△</span><span>Desarrollo Curricular</span></button>
+        <button type="button" data-dock="institutional"><span class="pci-dock-icon">▦</span><span>Gestión</span></button>
       </div>`;
       const header=document.querySelector('header');
       if(header?.parentNode)header.insertAdjacentElement('afterend',dock);else document.body.prepend(dock);
       dock.querySelector('[data-dock="home"]').onclick=goHome;
       dock.querySelector('[data-dock="offer"]').onclick=goOffer;
       dock.querySelector('[data-dock="proposal"]').onclick=goProposal;
+      dock.querySelector('[data-dock="institutional"]').onclick=goManagement;
     }
     const current=currentScreen();
     const curricular=current==='panel'||current==='offer'||current==='proposal';
-    dock.hidden=!curricular;
+    const management=current==='institutional';
+    dock.hidden=!(curricular||management);
+
+    const offer=dock.querySelector('[data-dock="offer"]');
+    const proposal=dock.querySelector('[data-dock="proposal"]');
+    const institutional=dock.querySelector('[data-dock="institutional"]');
+
+    if(offer)offer.hidden=management;
+    if(proposal)proposal.hidden=management;
+    if(institutional)institutional.hidden=curricular;
+
     dock.querySelectorAll('[data-dock]').forEach(b=>b.classList.toggle('is-active',b.dataset.dock===current));
   }
   function refresh(){ensureDock()}
