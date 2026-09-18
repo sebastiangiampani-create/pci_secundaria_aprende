@@ -74,14 +74,15 @@
   }
   function goBack(){
     if(sectionVisible('proposal')&&proposalBack())return;
-    if(sectionVisible('offer')||sectionVisible('institutional')){goPanel();return;}
+    if(sectionVisible('offer')){goPanel();return;}
+    if(sectionVisible('institutional')){goHome();return;}
     if(sectionVisible('panel')){goHome();return;}
     if(sectionVisible('home'))return;
   }
 
   function targetFor(section){
     if(section?.id==='proposal') return {label:'Volver',action:proposalBack};
-    if(section?.id==='institutional') return {label:'Volver al panel',action:goPanel};
+    if(section?.id==='institutional') return {label:'Volver al inicio',action:goHome};
     if(section?.id==='offer') return {label:'Volver al panel',action:goPanel};
     return null;
   }
