@@ -42,6 +42,36 @@
     return out;
   }
 
+  function courseConfigHtml(){
+    const orientations=selectedOrientations();
+    if(!orientations.length)return '<div class="v72-warning"><strong>No hay orientaciones seleccionadas.</strong> Volvé al Inicio y seleccioná al menos una orientación.</div>';
+    return '<section class="v72-course-config"><div class="eyebrow">Cursos y divisiones</div><h2>Configurar cursos</h2><p>Definí cuántas divisiones tiene cada nivel. Gestión usa esta estructura para comisiones, asignaciones, estudiantes y horarios.</p><div class="v72-course-config-grid">'+orientations.map(orientation=>{
+      const base=baseCfgApi()?.orientationConfig?.(orientation);
+      return '<article class="v72-course-config-card"><h3>'+esc(orientation)+'</h3><div class="v72-course-years">'+[1,2,3,4,5].map(year=>{
+        const labels=labelsFor(orientation,year);
+        const count=labels.length||Number(base?.courseCounts?.[year]||0);
+        return '<label><span>'+year+'.º</span><input type="number" min="0" max="12" step="1" value="'+count+'" data-v72-course-count="'+year+'" data-orientation="'+esc(orientation)+'"><small>'+esc(labels.join(', ')||'Sin divisiones')+'</small></label>';
+      }).join('')+'</div></article>';
+    }).join('')+'</div></section>';
+  }
+
+  function updateCourseCount(orientation,year,count){
+    const n=Math.max(0,Math.min(12,Number(count)||0));
+    const base=baseCfgApi()?.orientationConfig?.(orientation);
+    if(base){base.courseCounts=base.courseCounts||{};base.courseCounts[year]=n}
+    const custom=cfgApi()?.cfg?.(orientation);
+    if(custom){
+      custom.courseCounts=custom.courseCounts||{};
+      custom.divisionLabels=custom.divisionLabels||{};
+      custom.courseCounts[year]=n;
+      const current=Array.isArray(custom.divisionLabels[year])?[...custom.divisionLabels[year]]:[];
+      while(current.length<n)current.push(String.fromCharCode(65+current.length));
+      current.length=n;
+      custom.divisionLabels[year]=current;
+    }
+    save();
+  }
+
   function studentsFor(key){
     const ids=root().commissions[key]?.students||[];
     return ids.map(dni=>root().students[dni]).filter(Boolean).sort((a,b)=>String(a.lastName||'').localeCompare(String(b.lastName||''),'es')||String(a.firstName||'').localeCompare(String(b.firstName||''),'es'));
@@ -182,8 +212,9 @@
     const orphan=orphanWarnings(defs);
     const totalStudents=new Set(defs.flatMap(d=>root().commissions[d.key]?.students||[])).size;
     section.innerHTML=`
-      <div class="eyebrow">Comisiones y estudiantes</div>
-      <h2>Listados generados desde el Mapa de la Oferta</h2>
+      ${courseConfigHtml()}
+      <div class="eyebrow" style="margin-top:16px">Comisiones y estudiantes</div>
+      <h2>Listados generados desde los cursos configurados</h2>
       <p>Las comisiones no se crean de nuevo acá. Se generan automáticamente según las orientaciones, niveles y divisiones configuradas en el Mapa de la Oferta. El <strong>DNI es el identificador único</strong> del estudiante.</p>
       <div class="v72-summary"><span><strong>${defs.length}</strong> comisiones</span><span><strong>${totalStudents}</strong> estudiantes únicos</span></div>
       ${orphan.length?`<div class="v72-warning"><strong>Atención:</strong> hay ${orphan.length} comisión/es que ya no existen en el Mapa de la Oferta pero conservan estudiantes. No se borraron automáticamente.</div>`:''}
@@ -207,6 +238,12 @@
       ${orphan.length?`<div class="v72-orphans">${orphan.map(o=>`<div><strong>${esc(o.orientation)} · ${esc(o.course)}</strong><span>${o.count} estudiantes pendientes de reubicar</span></div>`).join('')}</div>`:''}
     `;
 
+    section.querySelectorAll('[data-v72-course-count]').forEach(input=>input.onchange=()=>{
+      updateCourseCount(input.dataset.orientation,Number(input.dataset.v72CourseCount),input.value);
+      render();
+      try{window.PCILeanManagementV71?.render?.()}catch{}
+      try{window.PCIManagementHomeV73?.refresh?.()}catch{}
+    });
     section.querySelectorAll('[data-v72-download]').forEach(b=>b.onclick=()=>downloadTemplate(b.dataset.v72Download));
     section.querySelectorAll('[data-v72-import]').forEach(i=>i.onchange=e=>{const f=e.target.files?.[0];if(f)importStudents(i.dataset.v72Import,f);e.target.value=''});
     section.querySelectorAll('[data-v72-add]').forEach(b=>b.onclick=()=>addStudentManual(b.dataset.v72Add));
@@ -221,13 +258,13 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    .v72-students{margin-top:16px;padding:17px}.v72-students h2{margin:4px 0 5px}.v72-students>p{margin:0;color:var(--muted);font-size:.7rem;line-height:1.45}
+    .v72-students{margin-top:16px;padding:17px}.v72-students h2{margin:4px 0 5px}.v72-course-config{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--band)}.v72-course-config>p{margin:0;color:var(--muted);font-size:.66rem}.v72-course-config-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:12px}.v72-course-config-card{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}.v72-course-config-card h3{margin:0 0 8px;font-size:.78rem}.v72-course-years{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.v72-course-years label{display:grid;gap:3px}.v72-course-years span{font-size:.52rem;font-weight:900}.v72-course-years input{width:100%;padding:7px;border:1px solid var(--line);border-radius:8px;text-align:center;font-weight:900}.v72-course-years small{font-size:.45rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v72-students>p{margin:0;color:var(--muted);font-size:.7rem;line-height:1.45}
     .v72-summary{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.v72-summary span{padding:6px 9px;border-radius:999px;background:var(--band);font-size:.56rem;color:var(--muted)}.v72-summary strong{color:var(--ink)}
     .v72-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:9px;margin-top:12px}.v72-card{border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff}.v72-card-head{display:flex;justify-content:space-between;gap:8px;align-items:start}.v72-card-head h3{margin:2px 0;font-size:.82rem}.v72-card-head small{font-size:.52rem;color:var(--muted)}.v72-count{padding:5px 7px;border-radius:999px;background:var(--mint-soft);font-size:.5rem;font-weight:850;color:var(--mint-dark);white-space:nowrap}
     .v72-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.v72-actions .btn,.v72-file{font-size:.54rem;padding:7px 9px}.v72-file{cursor:pointer}
     .v72-list{margin-top:9px;border-top:1px solid var(--line);padding-top:7px}.v72-list summary{cursor:pointer;font-size:.56rem;font-weight:850;color:var(--ink)}.v72-student{display:flex;justify-content:space-between;gap:7px;align-items:center;padding:7px 0;border-bottom:1px solid #edf1f4}.v72-student strong{display:block;font-size:.58rem}.v72-student small{display:block;font-size:.49rem;color:var(--muted);margin-top:2px}.v72-student button{width:24px;height:24px;border:0;border-radius:50%;background:var(--danger-soft);color:var(--danger);font-weight:900}
     .v72-warning{margin:9px 0;padding:9px 10px;border-radius:9px;background:var(--danger-soft);color:var(--danger);font-size:.58rem;line-height:1.4}.v72-orphans{display:grid;gap:6px;margin-top:9px}.v72-orphans div{display:flex;justify-content:space-between;gap:8px;padding:8px;border:1px solid #e3c6cd;border-radius:9px;background:#fff9fa;font-size:.55rem}
-    @media(max-width:760px){.v72-grid{grid-template-columns:1fr}.v72-actions{flex-direction:column}.v72-actions .btn,.v72-actions .v72-file{width:100%;box-sizing:border-box;text-align:center}.v72-card-head{flex-direction:column}.v72-orphans div{flex-direction:column}}
+    @media(max-width:760px){.v72-course-years{grid-template-columns:repeat(2,1fr)}.v72-grid{grid-template-columns:1fr}.v72-actions{flex-direction:column}.v72-actions .btn,.v72-actions .v72-file{width:100%;box-sizing:border-box;text-align:center}.v72-card-head{flex-direction:column}.v72-orphans div{flex-direction:column}}
   `;
   document.head.appendChild(style);
 
