@@ -6,7 +6,7 @@
   const scheduleApi=()=>window.PCIAnnualSchedulerV68||window.PCIAnnualSchedulerV65||null;
   const availabilityApi=()=>window.PCIAvailabilityPreferencesV60||window.PCIAvailabilityV49||null;
   const gridApi=()=>window.PCIScheduleConfigV51||null;
-  let observer=null,timer=null;
+  let timer=null;
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const slug=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -77,7 +77,7 @@
   }
   const style=document.createElement('style');style.textContent=`.v68-export{margin-top:0!important;border-color:#b9ddd7;background:#fbfffe}.v68-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.v68-sheet{max-width:1100px;margin:auto}.v68-sheet h2{margin:22px 0 8px;font-size:1rem}.v68-sheet table{width:100%;border-collapse:collapse;font-size:.58rem}.v68-sheet th,.v68-sheet td{border:1px solid #b8c5ce;padding:5px;vertical-align:top}.v68-sheet th{background:#edf3f8;text-align:left}.v68-break{break-before:page}@media print{.v68-break{break-before:page}}`;document.head.appendChild(style);
   function schedule(){clearTimeout(timer);timer=setTimeout(decorate,100)}
-  function start(){schedule();const host=$id('v48InstitutionalContent');if(host&&!observer){observer=new MutationObserver(schedule);observer.observe(host,{childList:true,subtree:false})}}
+  function start(){schedule()}
   window.addEventListener('pci-app-ready',()=>setTimeout(start,1450));document.addEventListener('click',e=>{if(e.target.closest('#openInstitutionalGeneral,#openInstitutional'))setTimeout(start,450)},true);
   const publicApi={exportExcel,downloadBackup,printImplementation,decorate,assignmentsData,teacherData,teamData};window.PCIInstitutionalExportV68=publicApi;window.PCIInstitutionalExportV67=publicApi;
 })();
