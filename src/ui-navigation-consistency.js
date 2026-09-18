@@ -10,7 +10,8 @@
       #pciGlobalDock .pci-dock-icon{font-size:1rem;font-weight:900;line-height:1}#pciGlobalDock[hidden],#pciGlobalDock button[hidden]{display:none!important}
       #panel .phase-grid>#institutionalCard,#panel #v71LeanPanelEntry{display:none!important}
       #institutional>.back,#institutional>.pci-backbar,#offer>.back,#offer>.pci-backbar{display:none!important}
-      #proposal .v28-back,#proposal [id="v28panel"],#proposal>.back,#proposal>.pci-backbar{display:none!important}
+      #proposal [id="v28panel"],#proposal>.back,#proposal>.pci-backbar{display:none!important}
+      #proposal #v28back,#proposal #v28mback,#proposal #v28err{display:inline-flex!important;align-items:center!important;gap:6px!important;min-height:38px!important;padding:8px 12px!important;margin:0 0 10px!important;border:1px solid #cfd9e1!important;border-radius:999px!important;background:#fff!important;color:#12395c!important;font-weight:850!important;box-shadow:0 4px 12px rgba(18,57,92,.06)!important}
       #proposal{padding-top:0!important}
       #proposal>.hero{display:none!important}
       #proposal>h2#proposalTitle:empty,#proposal>#proposalTitle:empty{display:none!important;margin:0!important;padding:0!important;height:0!important;min-height:0!important}
