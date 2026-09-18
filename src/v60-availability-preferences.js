@@ -2,7 +2,7 @@
   const $id=id=>document.getElementById(id);
   const base=()=>window.PCIAvailabilityV49||null;
   const grid=()=>window.PCIScheduleConfigV51||null;
-  let selectedTeacher=null,observer=null,timer=null;
+  let selectedTeacher=null,timer=null;
   const key=(day,p)=>`${day}:${p}`;
   function root(){
     state.institutional=state.institutional||{};
@@ -50,7 +50,7 @@
   }
   function patch(){const a=base();if(!a||a.__v60Preferences)return;a.available=available;a.preferencePenalty=penalty;a.status=status;a.setStatus=setStatus;a.__v60Preferences=true}
   function refresh(){clearTimeout(timer);timer=setTimeout(()=>{patch();render()},70)}
-  function start(){refresh();const host=$id('v48InstitutionalContent');if(host&&!observer){observer=new MutationObserver(refresh);observer.observe(host,{childList:true,subtree:false})}}
+  function start(){refresh()}
   window.addEventListener('pci-app-ready',()=>setTimeout(start,320));
   window.addEventListener('pci-schedule-grid-changed',refresh);
   document.addEventListener('click',e=>{if(e.target.closest('#openInstitutional'))setTimeout(start,180)},true);
