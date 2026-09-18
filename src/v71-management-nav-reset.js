@@ -64,7 +64,7 @@
       if(hero)hero.after(nav);else screen.prepend(nav);
     }
     const items=targets().filter(x=>x.find());
-    nav.innerHTML=`<div class="v71k-nav-scroll">${items.map(x=>`<button type="button" data-v71k-go="${x.key}">${x.label}</button>`).join('')}</div><button type="button" class="v71k-reset" data-v71k-reset>Reiniciar Gestión</button>`;
+    nav.innerHTML=`<div class="v71k-nav-scroll">${items.map(x=>`<button type="button" data-v71k-go="${x.key}"><span class="v71k-icon" aria-hidden="true"></span><span>${x.label}</span></button>`).join('')}</div><button type="button" class="v71k-reset" data-v71k-reset><span class="v71k-reset-icon" aria-hidden="true">↻</span><span>Reiniciar Gestión</span></button>`;
     for(const item of items){
       nav.querySelector(`[data-v71k-go="${item.key}"]`)?.addEventListener('click',()=>go(item.find));
     }
@@ -87,16 +87,45 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    .v71k-management-nav{position:sticky;top:0;z-index:80;display:flex;gap:8px;align-items:center;margin:10px 0 12px;padding:9px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.96);box-shadow:0 6px 18px rgba(18,57,92,.08);backdrop-filter:blur(8px)}
-    .v71k-nav-scroll{display:flex;gap:6px;overflow-x:auto;flex:1 1 auto;scrollbar-width:thin;padding-bottom:1px}
-    .v71k-management-nav button{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);padding:7px 10px;font-size:.58rem;font-weight:850;cursor:pointer;white-space:nowrap}
-    .v71k-management-nav button:hover{border-color:#8fbfb8;background:#f4fbf9}
-    .v71k-management-nav .v71k-reset{border-color:#d7a8b2;background:#fff5f6;color:var(--danger)}
+    .v71k-management-nav{
+      position:sticky;top:0;z-index:80;display:grid;grid-template-columns:1fr;gap:10px;
+      margin:10px 0 14px;padding:12px;border:1px solid #d7e2e9;border-radius:18px;
+      background:rgba(255,255,255,.97);box-shadow:0 10px 28px rgba(18,57,92,.08);
+      backdrop-filter:blur(12px)
+    }
+    .v71k-nav-scroll{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;overflow:visible;padding:0}
+    .v71k-management-nav button{
+      min-height:50px;border:1px solid #d9e3ea;border-radius:999px;background:#f7fafc;color:#12395c;
+      padding:10px 16px;font-size:.72rem;font-weight:850;cursor:pointer;white-space:nowrap;
+      display:inline-flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 2px 5px rgba(18,57,92,.03)
+    }
+    .v71k-management-nav button:hover{border-color:#b8cad6;background:#eef4f7}
+    .v71k-management-nav [data-v71k-go="excel"]{background:#163f68;color:#fff;border-color:#163f68}
+    .v71k-management-nav [data-v71k-go="excel"]:hover{background:#12395c}
+    .v71k-icon{display:inline-grid;place-items:center;width:20px;height:20px;font-size:1rem;font-weight:900}
+    [data-v71k-go="excel"] .v71k-icon::before{content:"▤"}
+    [data-v71k-go="disponibilidad"] .v71k-icon::before{content:"♟"}
+    [data-v71k-go="horario"] .v71k-icon::before{content:"◷"}
+    [data-v71k-go="docentes"] .v71k-icon::before{content:"●"}
+    [data-v71k-go="asignaciones"] .v71k-icon::before{content:"↔"}
+    [data-v71k-go="equipos"] .v71k-icon::before{content:"◎"}
+    [data-v71k-go="respaldo"] .v71k-icon::before{content:"⇩"}
+    .v71k-management-nav .v71k-reset{
+      width:100%;min-height:48px;border:1.5px solid #dfa7b2;background:#fff7f8;color:#b6324a;
+      font-size:.75rem;font-weight:900;box-shadow:none
+    }
+    .v71k-reset-icon{font-size:1.2rem;line-height:1}
     .v71k-target-flash{outline:3px solid rgba(70,160,145,.22);outline-offset:3px;transition:outline-color .9s ease}
     @media(max-width:780px){
-      .v71k-management-nav{top:0;margin-left:-2px;margin-right:-2px;padding:7px;border-radius:11px;align-items:stretch;flex-direction:column}
-      .v71k-nav-scroll{width:100%}
-      .v71k-management-nav .v71k-reset{width:100%;text-align:center}
+      .v71k-management-nav{top:0;margin-left:-2px;margin-right:-2px;padding:10px;border-radius:16px;gap:10px}
+      .v71k-nav-scroll{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+      .v71k-management-nav button{min-height:48px;padding:9px 8px;font-size:.68rem;gap:6px}
+      .v71k-icon{width:18px;height:18px;font-size:.9rem}
+      .v71k-management-nav .v71k-reset{min-height:46px}
+    }
+    @media(max-width:430px){
+      .v71k-management-nav button{font-size:.64rem}
+      .v71k-icon{display:none}
     }
   `;
   document.head.appendChild(style);
