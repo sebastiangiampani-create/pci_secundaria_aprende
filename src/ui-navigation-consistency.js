@@ -10,6 +10,7 @@
       #pciGlobalDock .pci-dock-icon{font-size:1rem;font-weight:900;line-height:1}#pciGlobalDock[hidden],#pciGlobalDock button[hidden]{display:none!important}
       #panel .phase-grid>#institutionalCard,#panel #v71LeanPanelEntry{display:none!important}
       #institutional>.back,#institutional>.pci-backbar,#offer>.back,#offer>.pci-backbar{display:none!important}
+      #proposal .v28-back,#proposal [id="v28panel"],#proposal>.back,#proposal>.pci-backbar{display:none!important}
       .screen>.back{display:none!important}
       @media(max-width:760px){
         body{padding-bottom:76px}
