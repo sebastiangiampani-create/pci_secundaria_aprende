@@ -33,6 +33,20 @@
     return String(g.term||'').includes('-')?4:2;
   }
 
+  function planName(ctx){
+    const p=ctx?.plan;
+    const direct=String(p?.name||'').trim();
+    if(direct)return direct;
+    const electiveA=String(p?.elective?.A?.name||'').trim();
+    const electiveB=String(p?.elective?.B?.name||'').trim();
+    if(electiveA&&electiveB)return electiveA+' / '+electiveB;
+    if(electiveA)return electiveA;
+    if(electiveB)return electiveB;
+    const stored=String(ctx?.group?.data?.plansBimestrales?.[Number(ctx?.planNumber||1)-1]?.name||'').trim();
+    if(stored)return stored;
+    return `${ctx?.group?.data?.name||ctx?.group?.name||'Agrupamiento'} · Plan ${ctx?.planNumber||''}`.trim();
+  }
+
   function allContexts(){
     const out=[];
     for(const orientation of (state.selected||[])){
@@ -82,12 +96,12 @@
         commissionKey:ctx.commission.key,
         course:ctx.commission.course,
         planNumber:ctx.planNumber,
-        planName:ctx.plan?.name||'',
+        planName:planName(ctx),
         criteria:['','','',''],
         rows:{}
       };
     }
-    e.planName=ctx.plan?.name||e.planName||'';
+    e.planName=planName(ctx)||e.planName||'';
     e.criteria=Array.isArray(e.criteria)?e.criteria.slice(0,4):['','','',''];
     while(e.criteria.length<4)e.criteria.push('');
     e.rows=e.rows||{};
@@ -186,7 +200,7 @@
           <h3>${esc(ctx.group.data?.name||ctx.group.name)}</h3>
           <p>${esc(window.PCIPhase2V28?.typeLabel?.(ctx.group.type)||ctx.group.type)} · Nivel ${esc(ctx.group.year)}</p>
           <small>${teachers.length?teachers.map(t=>esc(t.name)).join(' · '):'Sin docentes asignados todavía'}</small>
-          <div class="v76-plan-buttons">${plans.map(p=>`<button type="button" data-v76-open="${esc(p.key)}"><span>Plan ${p.planNumber}</span><strong>${esc(p.plan?.name||'Sin nombre')}</strong><small>${criteriaReady(ensureEval(p))?'Criterios listos':'Definir criterios'}</small></button>`).join('')}</div>
+          <div class="v76-plan-buttons">${plans.map(p=>`<button type="button" data-v76-open="${esc(p.key)}"><span>Plan ${p.planNumber}</span><strong>${esc(planName(p))}</strong><small>${criteriaReady(ensureEval(p))?'Criterios listos':'Definir criterios'}</small></button>`).join('')}</div>
           <div class="v76-ready">${ready}/${plans.length} planes con criterios completos</div>
         </article>`;
       }).join(''):'<div class="v76-empty-state"><strong>No hay planes disponibles para calificar todavía.</strong><span>Calificaciones se habilita cuando Desarrollo Curricular tiene planes y Gestión tiene comisiones del mismo nivel y orientación.</span></div>'}</div>`;
@@ -219,7 +233,7 @@
         <div>
           <div class="eyebrow">${esc(ctx.orientation)} · ${esc(ctx.commission.course)}</div>
           <h1>${esc(e.groupName)} · Plan ${ctx.planNumber}</h1>
-          <h2 class="v76-plan-name">${esc(ctx.plan?.name||e.planName||'Plan sin nombre')}</h2>
+          <h2 class="v76-plan-name">${esc(planName(ctx)||e.planName||'Plan sin nombre')}</h2>
           <p>${esc(window.PCIPhase2V28?.typeLabel?.(ctx.group.type)||ctx.group.type)} · Equipo: ${teachers.length?teachers.map(t=>esc(t.name)).join(' · '):'sin docentes asignados'}</p>
         </div>
       </div>
