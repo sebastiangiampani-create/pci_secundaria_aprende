@@ -50,13 +50,16 @@
           'Materia / espacio':row.name||'',
           'HC':row.hours??'',
           'Docente':t?.name||'',
+          'DNI':t?.dni||'',
           'Email':t?.email||'',
+          'Tipo de cargo':t?.cargoType||'',
+          'HC por horas':t?.cargoType==='POR_HORAS'?(t?.manualHours||''):'',
           '__ID':row.instanceId
         };
       });
-      const ws=XLSX.utils.json_to_sheet(data,{header:['Orientación','Curso','Materia / espacio','HC','Docente','Email','__ID']});
-      ws['!cols']=[{wch:28},{wch:14},{wch:36},{wch:8},{wch:30},{wch:34},{wch:12,hidden:true}];
-      ws['!autofilter']={ref:`A1:F${Math.max(2,data.length+1)}`};
+      const ws=XLSX.utils.json_to_sheet(data,{header:['Orientación','Curso','Materia / espacio','HC','Docente','DNI','Email','Tipo de cargo','HC por horas','__ID']});
+      ws['!cols']=[{wch:28},{wch:14},{wch:36},{wch:8},{wch:30},{wch:14},{wch:34},{wch:16},{wch:12},{wch:12,hidden:true}];
+      ws['!autofilter']={ref:`A1:I${Math.max(2,data.length+1)}`};
       const wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb,ws,'ASIGNACION DOCENTE');
       XLSX.writeFile(wb,`asignacion-docente-${slug(state.school||'escuela')||'escuela'}.xlsx`);
@@ -69,11 +72,11 @@
     if(name){const hit=list.find(t=>norm(t.name)===norm(name));if(hit)return hit}
     return null;
   }
-  function ensureTeacher(name,email){
+  function ensureTeacher(name,email,dni='',cargoType='',manualHours=''){
     let t=findTeacher(name,email);
-    if(t){if(email&&!t.email)t.email=email;if(name&&!t.name)t.name=name;return t}
+    if(t){if(email&&!t.email)t.email=email;if(name&&!t.name)t.name=name;if(dni&&!t.dni)t.dni=dni;if(cargoType)t.cargoType=cargoType;if(cargoType==='POR_HORAS')t.manualHours=Math.max(0,Number(manualHours)||0);if(t.meetingHours==null)t.meetingHours=3;return t}
     if(!name&&!email)return null;
-    t={id:uid(),name:name||email,email:email||'',baseHours:0,baseHoursSource:'assignments'};
+    t={id:uid(),name:name||email,dni:dni||'',email:email||'',cargoType:cargoType||'TP4',manualHours:cargoType==='POR_HORAS'?Math.max(0,Number(manualHours)||0):0,meetingHours:3,baseHours:0,baseHoursSource:'assignments'};
     root().teachers[t.id]=t;
     return t;
   }
@@ -119,9 +122,9 @@
       // Institucional fila por fila ni al final del lote.
       for(const raw of data){
         const row=findRow(raw,index);if(!row){skipped++;continue}
-        const name=String(raw['Docente']||'').trim(),email=String(raw['Email']||'').trim();
+        const name=String(raw['Docente']||'').trim(),dni=String(raw['DNI']||'').trim(),email=String(raw['Email']||'').trim(),cargoType=String(raw['Tipo de cargo']||'').trim().toUpperCase(),manualHours=raw['HC por horas'];
         if(!name&&!email)continue;
-        const before=findTeacher(name,email),t=ensureTeacher(name,email);if(!t){skipped++;continue}
+        const before=findTeacher(name,email),t=ensureTeacher(name,email,dni,cargoType,manualHours);if(!t){skipped++;continue}
         if(!before)created++;
         r.assignments[row.instanceId]=t.id;assigned++;
       }
@@ -165,12 +168,12 @@
     section.innerHTML=`
       <div class="eyebrow">Carga masiva simple</div>
       <h2>Asignar docentes a las materias</h2>
-      <p>El Excel ya trae todo el plan cargado. Solo completá <strong>Docente</strong> y <strong>Email</strong>. No tenés que tocar cursos, materias ni cargas horarias.</p>
+      <p>El Excel ya trae todo el plan cargado. Completá <strong>Docente</strong>, <strong>DNI</strong>, <strong>Email</strong> y <strong>Tipo de cargo</strong>. Si ya tenés la planta armada, podés traer también las asignaciones. No tenés que tocar cursos, materias ni cargas horarias.</p>
       <div class="v71-simple-actions">
         <button type="button" class="btn soft" data-v71-simple-download>Descargar Excel</button>
         <label class="btn primary v71-simple-file">Importar Excel<input type="file" accept=".xlsx,.xls" hidden data-v71-simple-file></label>
       </div>
-      <div class="v71-simple-example"><strong>Así de simple:</strong><span>Matemática · 1.º A → Juan Pérez · juan@escuela.edu.ar</span></div>
+      <div class="v71-simple-example"><strong>Así de simple:</strong><span>Matemática · 1.º A → Juan Pérez · TP2 · juan@escuela.edu.ar</span></div>
       <div id="v71SimpleExcelResult"></div>`;
     section.querySelector('[data-v71-simple-download]').onclick=downloadSimpleWorkbook;
     section.querySelector('input[data-v71-simple-file]').onchange=e=>{const f=e.target.files?.[0];if(f)importSimpleWorkbook(f)};
