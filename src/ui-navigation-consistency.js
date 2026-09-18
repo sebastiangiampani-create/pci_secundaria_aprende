@@ -18,11 +18,13 @@
       #pciGlobalDock button+button{border-left:1px solid #edf1f4;border-radius:0}
       #pciGlobalDock button.is-active{border-radius:999px}
       #pciGlobalDock .pci-dock-icon{font-size:1rem;font-weight:900;line-height:1}
-      #pciGlobalDock[hidden]{display:none!important}
+      #pciGlobalDock[hidden],#pciGlobalDock button[hidden]{display:none!important}
+      .screen>.back{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:8px 12px!important;margin:0 0 12px!important;border:1px solid #d7e0e7!important;border-radius:999px!important;background:#fff!important;box-shadow:0 4px 12px rgba(18,57,92,.05);font-weight:800!important;color:#12395c!important}
 
       @media(max-width:760px){
         body{padding-bottom:76px}
         .pci-backbar{margin-bottom:10px;padding:5px 0}
+        .screen>.back{display:none!important}
         .pci-backbtn,#proposal .v28-back{min-height:44px!important;font-size:.78rem!important}
         #proposal .v28-hero{margin-left:-16px!important;margin-right:-16px!important;padding-left:16px!important;padding-right:16px!important}
         #proposal .v28-section{align-items:flex-start!important;flex-direction:column!important}
@@ -59,6 +61,7 @@
     return false;
   };
 
+  function goHome(){window.screen?.('home')}
   function goPanel(){window.screen?.('panel')}
   function goOffer(){window.screen?.('offer')}
   function goProposal(){window.screen?.('proposal');setTimeout(()=>document.getElementById('v28home')?.removeAttribute('hidden'),0)}
@@ -72,10 +75,8 @@
   function goBack(){
     if(sectionVisible('proposal')&&proposalBack())return;
     if(sectionVisible('offer')||sectionVisible('institutional')){goPanel();return;}
-    if(sectionVisible('panel')){
-      const b=document.querySelector('#panel [data-back],#panel .back-button,#panel .btn-back');
-      if(b)b.click();
-    }
+    if(sectionVisible('panel')){goHome();return;}
+    if(sectionVisible('home'))return;
   }
 
   function targetFor(section){
@@ -97,6 +98,7 @@
   }
 
   function currentScreen(){
+    if(sectionVisible('home'))return'home';
     if(sectionVisible('offer'))return'offer';
     if(sectionVisible('proposal'))return'proposal';
     if(sectionVisible('institutional'))return'institutional';
@@ -110,7 +112,7 @@
       dock=document.createElement('nav');dock.id='pciGlobalDock';dock.setAttribute('aria-label','Navegación principal del PCI');
       dock.innerHTML=`<div class="pci-dock-inner">
         <button type="button" class="pci-dock-back" data-dock="back"><span class="pci-dock-icon">←</span><span>Volver</span></button>
-        <button type="button" data-dock="panel"><span class="pci-dock-icon">⌂</span><span>Inicio</span></button>
+        <button type="button" data-dock="home"><span class="pci-dock-icon">⌂</span><span>Inicio</span></button>
         <button type="button" data-dock="offer"><span class="pci-dock-icon">◇</span><span>Mapa de la Oferta</span></button>
         <button type="button" data-dock="proposal"><span class="pci-dock-icon">△</span><span>Propuesta Curricular</span></button>
         <button type="button" data-dock="institutional"><span class="pci-dock-icon">▦</span><span>Gestión</span></button>
@@ -118,13 +120,15 @@
       const header=document.querySelector('header');
       if(header?.parentNode)header.insertAdjacentElement('afterend',dock);else document.body.prepend(dock);
       dock.querySelector('[data-dock="back"]').onclick=goBack;
-      dock.querySelector('[data-dock="panel"]').onclick=goPanel;
+      dock.querySelector('[data-dock="home"]').onclick=goHome;
       dock.querySelector('[data-dock="offer"]').onclick=goOffer;
       dock.querySelector('[data-dock="proposal"]').onclick=goProposal;
       dock.querySelector('[data-dock="institutional"]').onclick=goManagement;
     }
     const current=currentScreen();
     dock.hidden=!current;
+    const back=dock.querySelector('[data-dock="back"]');
+    if(back)back.hidden=current==='home'||current==='panel';
     dock.querySelectorAll('[data-dock]').forEach(b=>b.classList.toggle('is-active',b.dataset.dock===current));
   }
 
