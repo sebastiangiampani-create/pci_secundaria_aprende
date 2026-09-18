@@ -110,7 +110,7 @@
       dock=document.createElement('nav');dock.id='pciGlobalDock';dock.setAttribute('aria-label','Navegación principal del PCI');
       dock.innerHTML=`<div class="pci-dock-inner">
         <button type="button" class="pci-dock-back" data-dock="back"><span class="pci-dock-icon">←</span><span>Volver</span></button>
-        <button type="button" data-dock="panel"><span class="pci-dock-icon">⌂</span><span>Panel</span></button>
+        <button type="button" data-dock="panel"><span class="pci-dock-icon">⌂</span><span>Inicio</span></button>
         <button type="button" data-dock="offer"><span class="pci-dock-icon">◇</span><span>Mapa de la Oferta</span></button>
         <button type="button" data-dock="proposal"><span class="pci-dock-icon">△</span><span>Propuesta Curricular</span></button>
         <button type="button" data-dock="institutional"><span class="pci-dock-icon">▦</span><span>Gestión</span></button>
