@@ -25,11 +25,18 @@
     return hoursLoading;
   }
 
-  function cargoNominal(t){
-    if(CARGOS[t.cargoType])return CARGOS[t.cargoType];
-    if(t.cargoType==='POR_HORAS')return Math.max(0,Number(t.manualHours||0));
-    return Math.max(0,Number(t.baseHours||0));
+  function teacherCargos(t){
+    if(Array.isArray(t.cargos)&&t.cargos.length)return t.cargos;
+    const legacyType=t.cargoType||'TP4';
+    t.cargos=[{id:`cargo-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,type:legacyType,manualHours:legacyType==='POR_HORAS'?Math.max(0,Number(t.manualHours||0)):0}];
+    return t.cargos;
   }
+  function cargoHours(c){
+    if(CARGOS[c?.type])return CARGOS[c.type];
+    if(c?.type==='POR_HORAS')return Math.max(0,Number(c.manualHours||0));
+    return 0;
+  }
+  function cargoNominal(t){return teacherCargos(t).reduce((n,c)=>n+cargoHours(c),0)}
   function assignedRows(tid){return rows().filter(r=>root().assignments[r.instanceId]===tid)}
   function frontHours(tid){return assignedRows(tid).reduce((n,r)=>n+(Number(r.hours)||0),0)}
   function meetingHours(t){return t.meetingHours==null?3:Math.max(0,Number(t.meetingHours)||0)}
@@ -79,15 +86,40 @@
     const exists=teachers().find(t=>String(t.name).trim().toLowerCase()===name.toLowerCase()||(dni&&String(t.dni||'')===dni)||(email&&String(t.email||'').trim().toLowerCase()===email.toLowerCase()));
     if(exists)return toast('Ese docente ya está cargado.',true);
     const id=uid();
-    root().teachers[id]={id,name,dni,email,cargoType,manualHours,meetingHours:3};
+    root().teachers[id]={id,name,dni,email,cargos:[{id:`cargo-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,type:cargoType,manualHours:cargoType==='POR_HORAS'?manualHours:0}],meetingHours:3};
     save();render();ensureEntryButtons();toast('Docente agregado.');
   }
 
   function updateTeacher(tid,field,value){
     const t=root().teachers[tid];if(!t)return;
-    if(field==='meetingHours'||field==='manualHours')value=Math.max(0,Number(value)||0);
-    t[field]=value;
-    save();render();
+    if(field==='meetingHours')value=Math.max(0,Number(value)||0);
+    t[field]=value;save();render();
+  }
+  function cargoTotalAfter(t,replaceId,nextCargo){
+    return teacherCargos(t).reduce((n,c)=>n+cargoHours(c.id===replaceId?nextCargo:c),0);
+  }
+  function updateCargo(tid,cid,field,value){
+    const t=root().teachers[tid];if(!t)return;
+    const cs=teacherCargos(t),cargo=cs.find(x=>x.id===cid);if(!cargo)return;
+    const next={...cargo};
+    if(field==='type'){next.type=value;if(value!=='POR_HORAS')next.manualHours=0}
+    if(field==='manualHours')next.manualHours=Math.max(0,Number(value)||0);
+    const total=cargoTotalAfter(t,cid,next);
+    if(total>72){toast(`La suma de cargos de ${t.name} no puede superar 72 HC. Quedaría en ${total} HC.`,true);return}
+    Object.assign(cargo,next);save();render();
+  }
+  function addCargo(tid){
+    const t=root().teachers[tid];if(!t)return;
+    const cs=teacherCargos(t),next={id:`cargo-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,type:'TP4',manualHours:0};
+    const total=cargoNominal(t)+cargoHours(next);
+    if(total>72)return toast(`No se puede agregar ese cargo: ${t.name} superaría el tope de 72 HC.`,true);
+    cs.push(next);save();render();
+  }
+  function removeCargo(tid,cid){
+    const t=root().teachers[tid];if(!t)return;
+    const cs=teacherCargos(t);
+    if(cs.length<=1)return toast('El docente debe conservar al menos un cargo o designación.',true);
+    t.cargos=cs.filter(x=>x.id!==cid);save();render();
   }
 
   function teacherHtml(){
@@ -100,14 +132,20 @@
           <strong>⠿ ${esc(t.name)}</strong>
           <small>${esc(t.dni||'Sin DNI')}${t.email?` · ${esc(t.email)}`:''}</small>
           <small><strong>${assignmentCount(t.id)}</strong> asignaciones curriculares</small>
-          <div class="v71m-cargo-line">
-            <label>Cargo
-              <select data-v71m-edit="cargoType" data-teacher="${esc(t.id)}">
-                ${['TC','TP1','TP2','TP3','TP4','POR_HORAS'].map(x=>`<option value="${x}" ${t.cargoType===x?'selected':''}>${x==='POR_HORAS'?'Por horas':`${x} · ${CARGOS[x]} HC`}</option>`).join('')}
-              </select>
-            </label>
-            ${t.cargoType==='POR_HORAS'?`<label>HC<input type="number" min="0" step="1" value="${esc(t.manualHours||0)}" data-v71m-edit="manualHours" data-teacher="${esc(t.id)}"></label>`:''}
-            <label>Reunión HC<input type="number" min="0" step="1" value="${esc(meetingHours(t))}" data-v71m-edit="meetingHours" data-teacher="${esc(t.id)}"></label>
+          <div class="v71m-cargo-stack">
+            ${teacherCargos(t).map(c=>`<div class="v71m-cargo-line">
+              <label>Cargo
+                <select data-v71m-cargo-edit="type" data-teacher="${esc(t.id)}" data-cargo="${esc(c.id)}">
+                  ${['TC','TP1','TP2','TP3','TP4','POR_HORAS'].map(x=>`<option value="${x}" ${c.type===x?'selected':''}>${x==='POR_HORAS'?'Por horas':`${x} · ${CARGOS[x]} HC`}</option>`).join('')}
+                </select>
+              </label>
+              ${c.type==='POR_HORAS'?`<label>HC<input type="number" min="0" step="1" value="${esc(c.manualHours||0)}" data-v71m-cargo-edit="manualHours" data-teacher="${esc(t.id)}" data-cargo="${esc(c.id)}"></label>`:''}
+              <span class="v71m-cargo-hc">${cargoHours(c)} HC</span>
+              ${teacherCargos(t).length>1?`<button type="button" class="v71m-cargo-remove" data-v71m-cargo-remove="${esc(c.id)}" data-teacher="${esc(t.id)}" title="Quitar cargo">×</button>`:''}
+            </div>`).join('')}
+            <button type="button" class="v71m-add-cargo" data-v71m-add-cargo="${esc(t.id)}">+ Agregar cargo</button>
+            <label class="v71m-meeting">Reunión HC<input type="number" min="0" step="1" value="${esc(meetingHours(t))}" data-v71m-edit="meetingHours" data-teacher="${esc(t.id)}"></label>
+            <small class="v71m-cap">Tope total: 72 HC · Actual: <strong>${s.nominal} HC</strong></small>
           </div>
         </div>
         <div class="v71m-hours">
@@ -233,6 +271,9 @@
       $('v71LeanAddTeacher')?.addEventListener('click',addTeacher);
       host.querySelectorAll('[data-v71m-delete]').forEach(b=>b.addEventListener('click',()=>deleteTeacher(b.dataset.v71mDelete)));
       host.querySelectorAll('[data-v71m-edit]').forEach(el=>el.addEventListener('change',()=>updateTeacher(el.dataset.teacher,el.dataset.v71mEdit,el.value)));
+      host.querySelectorAll('[data-v71m-cargo-edit]').forEach(el=>el.addEventListener('change',()=>updateCargo(el.dataset.teacher,el.dataset.cargo,el.dataset.v71mCargoEdit,el.value)));
+      host.querySelectorAll('[data-v71m-add-cargo]').forEach(b=>b.addEventListener('click',()=>addCargo(b.dataset.v71mAddCargo)));
+      host.querySelectorAll('[data-v71m-cargo-remove]').forEach(b=>b.addEventListener('click',()=>removeCargo(b.dataset.teacher,b.dataset.v71mCargoRemove)));
       $('v71oCourseSelect')?.addEventListener('change',e=>{selectedCourseKey=e.target.value;render()});
       bindDrag(host);bindTouchAssign(host);
       setTimeout(()=>{
@@ -279,7 +320,7 @@
     .v71m-summary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.v71m-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:.6rem;color:var(--muted)}.v71m-summary strong{color:var(--ink)}.v71m-summary span:nth-child(4){border-color:#e0bdc5;background:var(--danger-soft);color:var(--danger)}
     .v71m-source{padding:14px!important}.v71m-source h2,.v71m-teacher-section h2,.v71o-assignment h2{margin:3px 0 4px!important}
     .v71m-add{display:grid;grid-template-columns:1.3fr .7fr 1fr .55fr .45fr auto;gap:7px;margin-top:10px}.v71m-add input,.v71m-add select{min-width:0;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}
-    .v71m-teachers{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px;margin-top:10px}.v71m-teacher{position:relative;padding:10px 42px 10px 10px;border:1px solid var(--line);border-radius:12px;background:var(--band);cursor:grab}.v71m-teacher.picked{outline:3px solid var(--mint)}.v71m-teacher.over{border-color:#e0bdc5;background:var(--danger-soft)}.v71m-teacher strong{display:block;font-size:.72rem}.v71m-teacher small{display:block;margin-top:2px;font-size:.52rem;color:var(--muted)}.v71m-teacher>button{position:absolute;right:8px;top:8px;width:28px;height:28px;border:1px solid #ddb7bf;border-radius:50%;background:#fff5f6;color:var(--danger);font-size:1rem;font-weight:900}.v71m-cargo-line{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.v71m-cargo-line label{display:flex;align-items:center;gap:4px;font-size:.52rem;font-weight:800}.v71m-cargo-line select,.v71m-cargo-line input{width:auto;max-width:92px;padding:5px;border:1px solid var(--line);border-radius:7px;background:#fff}.v71m-hours{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px}.v71m-hours span{padding:5px;border-radius:8px;background:#fff;font-size:.5rem;text-align:center}.v71m-hours b{display:block;font-size:.68rem}.v71m-hours .bad{background:var(--danger-soft);color:var(--danger)}
+    .v71m-teachers{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px;margin-top:10px}.v71m-teacher{position:relative;padding:10px 42px 10px 10px;border:1px solid var(--line);border-radius:12px;background:var(--band);cursor:grab}.v71m-teacher.picked{outline:3px solid var(--mint)}.v71m-teacher.over{border-color:#e0bdc5;background:var(--danger-soft)}.v71m-teacher strong{display:block;font-size:.72rem}.v71m-teacher small{display:block;margin-top:2px;font-size:.52rem;color:var(--muted)}.v71m-teacher>button{position:absolute;right:8px;top:8px;width:28px;height:28px;border:1px solid #ddb7bf;border-radius:50%;background:#fff5f6;color:var(--danger);font-size:1rem;font-weight:900}.v71m-cargo-stack{display:grid;gap:6px;margin-top:8px}.v71m-cargo-line{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px;border:1px solid var(--line);border-radius:8px;background:#fff}.v71m-cargo-line label,.v71m-meeting{display:flex;align-items:center;gap:4px;font-size:.52rem;font-weight:800}.v71m-cargo-line select,.v71m-cargo-line input,.v71m-meeting input{width:auto;max-width:110px;padding:5px;border:1px solid var(--line);border-radius:7px;background:#fff}.v71m-cargo-hc{font-size:.52rem;font-weight:900;color:var(--mint-dark)}.v71m-add-cargo{justify-self:start;border:1px dashed var(--mint-dark);border-radius:999px;background:var(--mint-soft);color:var(--mint-dark);padding:6px 9px;font-size:.54rem;font-weight:900}.v71m-cargo-remove{width:24px!important;height:24px!important;position:static!important;border-radius:50%!important}.v71m-cap{font-size:.5rem!important}.v71m-hours{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px}.v71m-hours span{padding:5px;border-radius:8px;background:#fff;font-size:.5rem;text-align:center}.v71m-hours b{display:block;font-size:.68rem}.v71m-hours .bad{background:var(--danger-soft);color:var(--danger)}
     .v71m-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;margin-top:10px;color:var(--muted);font-size:.62rem}
     .v71o-course-label{display:grid;gap:5px;margin-top:10px;max-width:420px;font-size:.6rem;font-weight:850}.v71o-course-label select{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.v71o-subject-list{display:grid;gap:7px;margin-top:10px}.v71o-subject-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--band)}.v71o-subject-row.dragover{outline:3px solid var(--mint)}.v71o-subject-row strong{display:block;font-size:.68rem}.v71o-subject-row small{display:block;margin-top:2px;font-size:.52rem;color:var(--muted)}.v71o-dropzone{min-height:42px;border:1.5px dashed #9dafbb;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:7px;padding:7px;color:var(--muted);font-size:.58rem;font-weight:800}.v71o-dropzone span{color:var(--ink);cursor:grab}.v71o-dropzone button{width:25px;height:25px;border:0;border-radius:50%;background:var(--danger-soft);color:var(--danger);font-weight:900}
     .v66-assignment-section,.v48-table-wrap{display:none!important}
