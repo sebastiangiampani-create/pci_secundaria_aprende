@@ -5,6 +5,7 @@
   const STAGES=[['punto_partida','Punto de partida'],['indagacion','Indagación'],['produccion','Producción'],['evaluacion','Evaluación']];
   let selectedContext=null;
   let homeFilters={orientation:'',year:'',course:''};
+  let accessScope={role:'admin',teacherId:''};
 
   function root(){
     state.institutional=state.institutional||{};
@@ -65,6 +66,12 @@
       }
     }
     return out;
+  }
+
+  function scopedContexts(){
+    const all=allContexts();
+    if(accessScope.role!=='teacher'||!accessScope.teacherId)return all;
+    return all.filter(ctx=>teachersFor(ctx).some(t=>String(t.id||t.teacherId||'')===String(accessScope.teacherId)));
   }
 
   function teachersFor(ctx){
@@ -170,7 +177,7 @@
     const host=$('v76GradingRoot');if(!host)return;
     selectedContext=null;
     let contexts=[];
-    try{contexts=allContexts()}catch(error){
+    try{contexts=scopedContexts()}catch(error){
       console.error('V76 contexts',error);
       host.innerHTML='<div class="v76-topbar"><button type="button" class="btn soft" data-v76-home>← Inicio</button></div><div class="v76-hero"><div class="eyebrow">Calificaciones</div><h1>Evaluación de planes</h1><p>No se pudo reconstruir todavía la relación entre planes y comisiones.</p></div><div class="v76-empty-state"><strong>Calificaciones todavía no pudo leer la estructura curricular.</strong><span>Volvé a Inicio y comprobá que existan planes en Desarrollo Curricular y comisiones en Gestión.</span></div>';
       host.querySelector('[data-v76-home]').onclick=goHome;
@@ -412,5 +419,23 @@
     @media(max-width:980px){.v76-grid{grid-template-columns:1fr}.v76-filters{grid-template-columns:1fr 1fr}}@media(max-width:760px){.v76-browser-head,.v76-course-head{align-items:flex-start;flex-direction:column}.v76-filters{grid-template-columns:1fr}.v76-course-block{padding:12px}#grading .v76-hero{margin:-18px -12px 14px;padding:20px 14px}.v76-plan-top{flex-direction:column}.v76-criteria-grid{grid-template-columns:1fr}.v76-dashboard{grid-template-columns:1fr 1fr}.v76-sheet-head{flex-direction:column}.v76-excel-actions{width:100%}.v76-excel-actions .btn{flex:1;text-align:center}}
   `;document.head.appendChild(style);
 
-  window.PCIGradingV76={openGrading,renderHome,openPlan,allContexts};
+  function setAccessScope(scope={}){
+    accessScope={
+      role:scope.role==='teacher'?'teacher':'admin',
+      teacherId:String(scope.teacherId||'')
+    };
+    homeFilters={orientation:'',year:'',course:''};
+    if($('grading')?.classList.contains('active'))renderHome();
+  }
+
+  function contextsForTeacher(teacherId){
+    const prev=accessScope;
+    accessScope={role:'teacher',teacherId:String(teacherId||'')};
+    try{return scopedContexts()}finally{accessScope=prev}
+  }
+
+  window.PCIGradingV76={
+    openGrading,renderHome,openPlan,allContexts,scopedContexts,setAccessScope,contextsForTeacher,
+    getAccessScope:()=>({...accessScope})
+  };
 })();
