@@ -3,6 +3,7 @@
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const slug=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   const STAGES=[['punto_partida','Punto de partida'],['indagacion','Indagación'],['produccion','Producción'],['evaluacion','Evaluación']];
+  const PLAN_STATUS=[['no_iniciado','No iniciado'],['en_proceso','En proceso'],['finalizado','Finalizado']];
   let selectedContext=null;
   let homeFilters={orientation:'',year:'',course:''};
   let accessScope={role:'admin',teacherId:''};
@@ -105,23 +106,24 @@
         course:ctx.commission.course,
         planNumber:ctx.planNumber,
         planName:planName(ctx),
-        criteria:['','','',''],
+        criteria:['','','','',''],
         rows:{}
       };
     }
     e.planName=planName(ctx)||e.planName||'';
-    e.criteria=Array.isArray(e.criteria)?e.criteria.slice(0,4):['','','',''];
-    while(e.criteria.length<4)e.criteria.push('');
+    e.criteria=Array.isArray(e.criteria)?e.criteria.slice(0,5):['','','','',''];
+    while(e.criteria.length<5)e.criteria.push('');
     e.rows=e.rows||{};
     return e;
   }
 
-  function criteriaReady(e){return e.criteria.every(x=>String(x||'').trim())}
+  function criteriaReady(e){return e.criteria.slice(0,4).every(x=>String(x||'').trim())}
 
   function rowFor(e,s){
-    if(!e.rows[s.dni])e.rows[s.dni]={dni:s.dni,stage:'',criteria:['','','',''],final:'',weight:'',weighted:''};
+    if(!e.rows[s.dni])e.rows[s.dni]={dni:s.dni,status:'no_iniciado',stage:'',criteria:['','','','',''],final:'',weight:'',weighted:''};
     const r=e.rows[s.dni];
-    r.criteria=Array.isArray(r.criteria)?r.criteria.slice(0,4):['','','',''];while(r.criteria.length<4)r.criteria.push('');
+    r.status=r.status||((r.final||r.stage)?'en_proceso':'no_iniciado');
+    r.criteria=Array.isArray(r.criteria)?r.criteria.slice(0,5):['','','','',''];while(r.criteria.length<5)r.criteria.push('');
     return r;
   }
 
@@ -292,8 +294,8 @@
 
       <section class="card v76-criteria">
         <div class="eyebrow">Criterios colegiados</div>
-        <h2>Definir los 4 criterios antes de calificar</h2>
-        <p>Los criterios pertenecen a este plan y a esta comisión. Todo el equipo docente trabaja sobre los mismos cuatro criterios.</p>
+        <h2>Definir 4 criterios obligatorios y un 5.º opcional</h2>
+        <p>Los criterios pertenecen a este plan y a esta comisión. Todo el equipo docente trabaja sobre los mismos criterios: cuatro son obligatorios y el quinto es opcional.</p>
         <div class="v76-criteria-grid">${e.criteria.map((c,i)=>`<label><span>Criterio ${i+1}</span><textarea data-v76-criterion="${i}" placeholder="Escribí el criterio acordado por el equipo docente">${esc(c)}</textarea></label>`).join('')}</div>
         <div class="v76-criteria-actions"><button type="button" class="btn primary" data-v76-save-criteria>Guardar criterios</button><span class="${ready?'ok':'pending'}">${ready?'Criterios completos':'Faltan criterios'}</span></div>
       </section>
@@ -308,7 +310,7 @@
             <label class="btn primary">Importar Excel<input type="file" accept=".xlsx" hidden data-v76-import></label>
           </div>
         </div>
-        ${ready?sheetHtml(e,students):'<div class="v76-lock">Primero completá y guardá los cuatro criterios colegiados.</div>'}
+        ${ready?sheetHtml(e,students):'<div class="v76-lock">Primero completá y guardá los cuatro criterios obligatorios.</div>'}
       </section>`;
     host.querySelector('[data-v76-back]').onclick=renderHome;
     host.querySelector('[data-v76-save-criteria]').onclick=()=>{
@@ -360,7 +362,7 @@
   }
 
   async function downloadExcel(ctx,e,students){
-    if(!criteriaReady(e))return toast('Primero completá los cuatro criterios.',true);
+    if(!criteriaReady(e))return toast('Primero completá los cuatro criterios obligatorios.',true);
     try{
       const XLSX=await loadXLSX();
       const rows=students.map(s=>{const r=rowFor(e,s);calcWeighted(r);const o={DNI:s.dni,Apellido:s.lastName||'',Nombre:s.firstName||'','Etapa alcanzada':STAGES.find(x=>x[0]===r.stage)?.[1]||''};
