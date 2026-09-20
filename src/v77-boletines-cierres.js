@@ -276,9 +276,18 @@
         </tbody></table></div>
       </section>
       <section class="card v77-preview">
-        <div class="eyebrow">Vista de boletín</div><h2>Vista previa</h2>
-        <p>El boletín toma el nombre del agrupamiento y el cierre oficial validado. Los criterios solo se muestran si la escuela habilita esa opción.</p>
-        <button type="button" class="btn soft" data-v77-print>Imprimir vista previa</button>
+        <div class="eyebrow">Vista de boletín</div><h2>Boletín muestra</h2>
+        <p>Visualizá cómo quedaría el boletín individual del estudiante tomando todos los cierres de esta comisión.</p>
+        <div class="v77-preview-controls">
+          <label>Estudiante
+            <select data-v77-student-preview>
+              <option value="">Seleccionar</option>
+              ${students.map(s=>`<option value="${esc(s.dni)}">${esc((s.lastName||'')+' '+(s.firstName||''))}</option>`).join('')}
+            </select>
+          </label>
+          <button type="button" class="btn primary" data-v77-show-bulletin>Ver boletín muestra</button>
+          <button type="button" class="btn soft" data-v77-print>Imprimir cierre actual</button>
+        </div>
       </section>`;
 
     host.querySelector('[data-v77-back]').onclick=renderHome;
@@ -297,7 +306,74 @@
     host.querySelector('[data-v77-publish]').onclick=()=>{
       c.status='publicado';c.publishedAt=new Date().toISOString();save();renderClosure();toast('Cierre publicado para boletines.');
     };
+    host.querySelector('[data-v77-show-bulletin]').onclick=()=>{
+      const dni=host.querySelector('[data-v77-student-preview]')?.value;
+      const student=students.find(s=>String(s.dni)===String(dni));
+      if(!student)return toast('Seleccioná un estudiante.',true);
+      renderStudentBulletin(g,student);
+    };
     host.querySelector('[data-v77-print]').onclick=()=>printPreview(g,c,students);
+  }
+
+  function studentBulletinRows(g,student){
+    const sameCommission=closureGroups().filter(x=>x.orientation===g.orientation&&x.commissionKey===g.commissionKey);
+    return sameCommission.map(group=>{
+      const closure=ensureClosure(group);
+      const row=rowFor(closure,student);
+      return {
+        groupName:group.groupName,
+        groupType:group.groupType,
+        closureType:closure.type,
+        status:closure.status,
+        final:row.final||'',
+        observation:row.observation||''
+      };
+    });
+  }
+
+  function renderStudentBulletin(g,student){
+    const content=$('printContent'),modal=$('printModal');
+    if(!content||!modal)return toast('No está disponible la vista de impresión.',true);
+    const rows=studentBulletinRows(g,student);
+    const criteriaVisible=!!root().grading.settings.showCriteriaToFamilies;
+    content.className='print-preview-wrap';
+    content.innerHTML=`
+      <article class="pci-print-sheet v77-bulletin-sheet">
+        <div class="v77-bulletin-head">
+          <div>
+            <div class="pci-print-kicker">Boletín de trayectoria</div>
+            <h1>${esc(state.school||'Escuela')}</h1>
+            <p>${esc(g.orientation)} · ${esc(g.course)}</p>
+          </div>
+          <div class="v77-bulletin-student">
+            <small>Estudiante</small>
+            <strong>${esc((student.lastName||'')+' '+(student.firstName||''))}</strong>
+            <span>DNI ${esc(student.dni||'')}</span>
+          </div>
+        </div>
+        <div class="v77-bulletin-meta">
+          <span><b>Nivel</b> ${esc(g.year)}</span>
+          <span><b>Comisión</b> ${esc(g.course)}</span>
+          <span><b>Orientación</b> ${esc(g.orientation)}</span>
+        </div>
+        <table class="v77-bulletin-table">
+          <thead><tr><th>Espacio / agrupamiento</th><th>Tipo de cierre</th><th>Estado</th><th>Calificación</th><th>Observación</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`<tr>
+              <td><strong>${esc(r.groupName)}</strong></td>
+              <td>${esc(r.closureType)}</td>
+              <td>${esc(statusLabel(r.status))}</td>
+              <td class="v77-bulletin-grade">${esc(r.final||'—')}</td>
+              <td>${esc(r.observation||'')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <div class="v77-bulletin-foot">
+          <span>Criterios visibles para familias: <strong>${criteriaVisible?'Sí':'No'}</strong></span>
+          <span>Documento de muestra generado desde los cierres del sistema.</span>
+        </div>
+      </article>`;
+    modal.classList.add('open');
   }
 
   function printPreview(g,c,students){
@@ -319,11 +395,11 @@
   const style=document.createElement('style');style.textContent=`
     .v77-home-entry{margin-top:12px!important}.v77-topbar{margin-bottom:12px}.v77-hero{padding:24px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(135deg,#f6fafc,#eef6f4)}.v77-hero h1{margin:4px 0 5px}.v77-hero p{margin:0;color:var(--muted);font-size:.7rem}
     .v77-browser{margin:14px 0;padding:16px;border:1px solid var(--line);border-radius:18px;background:#fff}.v77-browser-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.v77-browser-head h2{margin:4px 0 0}.v77-filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-top:12px}.v77-filters label{display:grid;gap:5px}.v77-filters span{font-size:.56rem;font-weight:900;color:var(--muted)}.v77-filters select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}.v77-summary{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.v77-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--band);font-size:.6rem}.v77-course-stack{display:grid;gap:18px;margin-top:14px}.v77-course-block{padding:16px;border:1px solid var(--line);border-radius:20px;background:#f9fbfc}.v77-course-head{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-bottom:12px}.v77-course-head small{display:block;color:var(--muted);font-size:.55rem}.v77-course-head h2{margin:3px 0 0}.v77-course-head>span{padding:6px 9px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:.54rem;font-weight:900}
-    .v77-settings,.v77-workflow,.v77-table-card,.v77-preview{margin-top:14px;padding:17px}.v77-settings{display:flex;justify-content:space-between;align-items:center;gap:14px}.v77-settings h2,.v77-workflow h2,.v77-table-card h2,.v77-preview h2{margin:4px 0}.v77-settings p,.v77-preview p{margin:0;color:var(--muted);font-size:.64rem}
+    .v77-settings,.v77-workflow,.v77-table-card,.v77-preview{margin-top:14px;padding:17px}.v77-settings{display:flex;justify-content:space-between;align-items:center;gap:14px}.v77-settings h2,.v77-workflow h2,.v77-table-card h2,.v77-preview h2{margin:4px 0}.v77-settings p,.v77-preview p{margin:0;color:var(--muted);font-size:.64rem}.v77-preview-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:12px}.v77-preview-controls label{display:grid;gap:5px;min-width:240px;font-size:.58rem;font-weight:900}.v77-preview-controls select{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.v77-bulletin-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.v77-bulletin-student{text-align:right}.v77-bulletin-student small,.v77-bulletin-student span{display:block;color:#5f7180;font-size:.75rem}.v77-bulletin-student strong{display:block;font-size:1.05rem;margin:3px 0}.v77-bulletin-meta{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.v77-bulletin-meta span{padding:6px 9px;border:1px solid #ccd7df;border-radius:999px;font-size:.72rem}.v77-bulletin-table{width:100%;border-collapse:collapse;font-size:.78rem}.v77-bulletin-table th,.v77-bulletin-table td{padding:8px;border:1px solid #cfd8df;text-align:left}.v77-bulletin-table th{background:#eef4f7}.v77-bulletin-grade{font-size:1rem;font-weight:900;text-align:center!important}.v77-bulletin-foot{display:flex;justify-content:space-between;gap:12px;margin-top:14px;color:#607280;font-size:.7rem}
     .v77-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.v77-card{padding:15px;border:1px solid var(--line);border-radius:17px;background:#fff}.v77-card-head{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.55rem}.v77-card h3{margin:8px 0 4px}.v77-card p{margin:0;color:var(--muted);font-size:.6rem}.v77-tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.v77-tags span{padding:5px 7px;border-radius:999px;background:var(--band);font-size:.52rem}.v77-tags .publicado{background:var(--ok-soft);color:var(--ok)}.v77-tags .validado{background:var(--mint-soft);color:var(--mint-dark)}.v77-empty,.v77-warning{margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}.v77-warning{border-color:#dfc476;background:#fff8df;color:#775b0c}
     .v77-workflow{display:grid;grid-template-columns:1fr minmax(220px,320px) auto;gap:12px;align-items:end}.v77-workflow label{display:grid;gap:5px;font-size:.58rem;font-weight:900}.v77-workflow select{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.v77-actions{display:flex;gap:6px;flex-wrap:wrap}
     .v77-table-wrap{overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px}.v77-table{width:100%;min-width:1100px;border-collapse:collapse;font-size:.58rem}.v77-table th,.v77-table td{padding:7px;border-bottom:1px solid var(--line);vertical-align:middle}.v77-table th{background:var(--band);text-align:left}.v77-table th small{display:block;margin-top:2px;color:var(--muted);font-weight:500}.v77-table input{width:100%;padding:7px;border:1px solid var(--line);border-radius:8px}
-    @media(max-width:980px){.v77-grid{grid-template-columns:1fr}.v77-filters{grid-template-columns:1fr 1fr}}@media(max-width:760px){.v77-browser-head,.v77-course-head{align-items:flex-start;flex-direction:column}.v77-filters{grid-template-columns:1fr}.v77-settings,.v77-workflow{grid-template-columns:1fr;align-items:stretch;flex-direction:column}.v77-actions{display:grid;grid-template-columns:1fr}.v77-actions .btn{width:100%}}
+    @media(max-width:980px){.v77-grid{grid-template-columns:1fr}.v77-filters{grid-template-columns:1fr 1fr}}@media(max-width:760px){.v77-browser-head,.v77-course-head,.v77-bulletin-head,.v77-bulletin-foot{align-items:flex-start;flex-direction:column}.v77-bulletin-student{text-align:left}.v77-filters{grid-template-columns:1fr}.v77-settings,.v77-workflow{grid-template-columns:1fr;align-items:stretch;flex-direction:column}.v77-actions,.v77-preview-controls{display:grid;grid-template-columns:1fr}.v77-actions .btn,.v77-preview-controls .btn,.v77-preview-controls label{width:100%;min-width:0}}
   `;document.head.appendChild(style);
 
   window.PCIBulletinsV77={open,renderHome,renderClosure,closureGroups};
