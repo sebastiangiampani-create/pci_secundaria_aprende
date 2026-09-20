@@ -296,7 +296,7 @@
         <div class="eyebrow">Criterios colegiados</div>
         <h2>Definir 4 criterios obligatorios y un 5.º opcional</h2>
         <p>Los criterios pertenecen a este plan y a esta comisión. Todo el equipo docente trabaja sobre los mismos criterios: cuatro son obligatorios y el quinto es opcional.</p>
-        <div class="v76-criteria-grid">${e.criteria.map((c,i)=>`<label><span>Criterio ${i+1}</span><textarea data-v76-criterion="${i}" placeholder="Escribí el criterio acordado por el equipo docente">${esc(c)}</textarea></label>`).join('')}</div>
+        <div class="v76-criteria-grid">${e.criteria.map((c,i)=>`<label><span>Criterio ${i+1}${i===4?' · opcional':''}</span><textarea data-v76-criterion="${i}" placeholder="Escribí el criterio acordado por el equipo docente">${esc(c)}</textarea></label>`).join('')}</div>
         <div class="v76-criteria-actions"><button type="button" class="btn primary" data-v76-save-criteria>Guardar criterios</button><span class="${ready?'ok':'pending'}">${ready?'Criterios completos':'Faltan criterios'}</span></div>
       </section>
 
@@ -324,14 +324,15 @@
 
   function sheetHtml(e,students){
     return `<div class="v76-sheet-wrap"><table class="v76-sheet"><thead><tr>
-      <th>DNI</th><th>Estudiante</th><th>Etapa alcanzada</th>
-      ${e.criteria.map(c=>`<th title="${esc(c)}">${esc(c)}</th>`).join('')}
+      <th>DNI</th><th>Estudiante</th><th>Estado del plan</th><th>Etapa alcanzada</th>
+      ${e.criteria.map((c,i)=>c?`<th title="${esc(c)}">${esc(c)}${i===4?' (opcional)':''}</th>`:'').join('')}
       <th>Calificación final</th><th>Ponderación %</th><th>Calificación ponderada</th>
     </tr></thead><tbody>${students.map(s=>{const r=rowFor(e,s);calcWeighted(r);return`<tr data-dni="${esc(s.dni)}">
       <td>${esc(s.dni)}</td><td><strong>${esc(s.lastName||'')} ${esc(s.firstName||'')}</strong></td>
-      <td><select data-v76-field="stage"><option value="">—</option>${STAGES.map(([k,l])=>`<option value="${k}" ${r.stage===k?'selected':''}>${l}</option>`).join('')}</select></td>
-      ${r.criteria.map((v,i)=>`<td><input data-v76-score="${i}" value="${esc(v)}"></td>`).join('')}
-      <td><input data-v76-field="final" value="${esc(r.final)}"></td>
+      <td><select data-v76-field="status">${PLAN_STATUS.map(([k,l])=>`<option value="${k}" ${r.status===k?'selected':''}>${l}</option>`).join('')}</select></td>
+      <td><select data-v76-field="stage" ${r.status==='no_iniciado'?'disabled':''}><option value="">—</option>${STAGES.map(([k,l])=>`<option value="${k}" ${r.stage===k?'selected':''}>${l}</option>`).join('')}</select></td>
+      ${r.criteria.map((v,i)=>e.criteria[i]?`<td><input data-v76-score="${i}" value="${esc(v)}"></td>`:'').join('')}
+      <td><input type="number" min="6" max="10" step="1" data-v76-field="final" value="${esc(r.final)}" ${r.status==='finalizado'?'':'disabled'}></td>
       <td><input data-v76-field="weight" value="${esc(r.weight)}"></td>
       <td><input data-v76-field="weighted" readonly value="${esc(r.weighted)}"></td>
     </tr>`}).join('')}</tbody></table></div>`;
@@ -344,10 +345,20 @@
       tr.querySelectorAll('[data-v76-score]').forEach(x=>x.onchange=()=>{r.criteria[Number(x.dataset.v76Score)]=x.value;saveAll()});
       tr.querySelectorAll('[data-v76-field]').forEach(x=>x.onchange=()=>{
         if(x.dataset.v76Field==='weighted')return;
-        r[x.dataset.v76Field]=x.value;
+        const field=x.dataset.v76Field;
+        if(field==='status'){
+          r.status=x.value;
+          if(r.status==='no_iniciado'){r.stage='';r.final=''}
+          if(r.status!=='finalizado')r.final='';
+        }else if(field==='final'){
+          const n=Number(x.value);
+          r.final=(r.status==='finalizado'&&Number.isFinite(n)&&n>=6&&n<=10)?String(n):'';
+          x.value=r.final;
+          if(r.status==='finalizado'&&!r.final)toast('Un plan Finalizado se califica de 6 a 10.',true);
+        }else r[field]=x.value;
         calcWeighted(r);saveAll();
         const w=tr.querySelector('[data-v76-field="weighted"]');if(w)w.value=r.weighted;
-        if(x.dataset.v76Field==='stage')renderPlan();
+        if(field==='stage'||field==='status')renderPlan();
       });
     });
   }
