@@ -9,6 +9,7 @@
   ];
   let selectedKey='';
   let homeFilters={orientation:'',year:'',course:''};
+  let accessScope={role:'admin',teacherId:'',studentDnis:[],commissionKeys:null};
 
   function root(){
     state.institutional=state.institutional||{};
@@ -50,6 +51,26 @@
 
   function closureType(g){
     return g.plans.length>=4?'Cierre anual':'Cierre cuatrimestral';
+  }
+
+  function visibleClosureGroups(){
+    const all=closureGroups();
+    if(accessScope.role==='admin')return all;
+    if(accessScope.role==='teacher'){
+      if(!accessScope.teacherId)return [];
+      return all.filter(g=>teachersFor(g).some(t=>String(t.id||t.teacherId||'')===String(accessScope.teacherId)));
+    }
+    return [];
+  }
+
+  function studentCommissionKeys(dni){
+    const id=String(dni||'').replace(/\D/g,'');
+    return Object.entries(root().commissions||{}).filter(([,c])=>(c.students||[]).map(String).includes(id)).map(([key])=>key);
+  }
+
+  function publishedGroupsForStudent(dni,commissionKey=''){
+    const keys=new Set(studentCommissionKeys(dni));
+    return closureGroups().filter(g=>keys.has(g.commissionKey)&&(!commissionKey||g.commissionKey===commissionKey)&&root().grading.closures?.[g.key]?.status==='publicado');
   }
 
   function teachersFor(g){
@@ -225,21 +246,26 @@
       card.id='v77BulletinsEntry';card.className='card v75-grading v77-home-entry';
       grading.after(card);
     }
-    card.innerHTML='<div><div class="eyebrow">4 · Boletines</div><h2>Boletines y cierres</h2><p>Valida el cierre común de cada agrupamiento y genera la vista institucional del boletín.</p><small>Un único cierre oficial por agrupamiento, comisión y período.</small></div><button type="button" class="btn primary" data-v77-open>Abrir Boletines</button>';
+    const familyMode=['student','family'].includes(accessScope.role);
+    card.innerHTML=familyMode
+      ?'<div><div class="eyebrow">Resultados</div><h2>Boletines publicados</h2><p>Consulta únicamente los resultados que la escuela ya publicó.</p><small>Las cargas internas, revisiones y criterios ocultos no se muestran.</small></div><button type="button" class="btn primary" data-v77-open>Ver resultados</button>'
+      :'<div><div class="eyebrow">4 · Boletines</div><h2>Boletines y cierres</h2><p>Valida el cierre común de cada agrupamiento y genera la vista institucional del boletín.</p><small>Un único cierre oficial por agrupamiento, comisión y período.</small></div><button type="button" class="btn primary" data-v77-open>Abrir Boletines</button>';
+    card.hidden=false;
     card.querySelector('[data-v77-open]').onclick=open;
   }
 
   function open(){
     showScreen();
     selectedKey='';
-    renderHome();
+    if(['student','family'].includes(accessScope.role))renderPublishedHome();else renderHome();
   }
 
   function statusLabel(s){return STATUSES.find(x=>x[0]===s)?.[1]||s}
 
   function renderHome(){
     const host=$('v77Root');if(!host)return;
-    const groups=closureGroups();
+    if(['student','family'].includes(accessScope.role))return renderPublishedHome();
+    const groups=visibleClosureGroups();
     const settings=root().grading.settings;
 
     const orientations=[...new Set(groups.map(g=>g.orientation))].sort((a,b)=>String(a).localeCompare(String(b),'es'));
@@ -288,10 +314,10 @@
         </div>
       </section>
 
-      <section class="card v77-settings">
+      ${accessScope.role==='admin'?`<section class="card v77-settings">
         <div><div class="eyebrow">Familias y estudiantes</div><h2>Visibilidad</h2><p>Por defecto los criterios no son visibles.</p></div>
         <label><input type="checkbox" data-v77-criteria ${settings.showCriteriaToFamilies?'checked':''}> Mostrar criterios a familias y estudiantes</label>
-      </section>
+      </section>`:''}
 
       <div class="v77-course-stack">${byCourse.size?[...byCourse.values()].map(block=>`
         <section class="v77-course-block">
@@ -313,13 +339,14 @@
     host.querySelector('[data-v77-home]').onclick=goHome;
     host.querySelector('[data-v77-clear]').onclick=()=>{homeFilters={orientation:'',year:'',course:''};renderHome()};
     host.querySelectorAll('[data-v77-filter]').forEach(s=>s.onchange=()=>{homeFilters[s.dataset.v77Filter]=s.value;renderHome()});
-    host.querySelector('[data-v77-criteria]').onchange=e=>{settings.showCriteriaToFamilies=!!e.target.checked;save();toast('Configuración de visibilidad guardada.')};
+    const criteriaToggle=host.querySelector('[data-v77-criteria]');if(criteriaToggle)criteriaToggle.onchange=e=>{settings.showCriteriaToFamilies=!!e.target.checked;save();toast('Configuración de visibilidad guardada.')};
     host.querySelectorAll('[data-v77-open-closure]').forEach(b=>b.onclick=()=>{selectedKey=b.dataset.v77OpenClosure;renderClosure()});
   }
 
   function renderClosure(){
     const host=$('v77Root');if(!host)return;
-    const g=closureGroups().find(x=>x.key===selectedKey);if(!g)return renderHome();
+    if(!['admin','teacher'].includes(accessScope.role))return renderPublishedHome();
+    const g=visibleClosureGroups().find(x=>x.key===selectedKey);if(!g)return renderHome();
     const c=ensureClosure(g),students=studentsFor(g.commissionKey),teachers=teachersFor(g);
     const ready=canValidate(g,c);
     host.innerHTML=`
@@ -408,12 +435,14 @@
     host.querySelector('[data-v77-print]').onclick=()=>printPreview(g,c,students);
   }
 
-  function studentBulletinRows(g,student){
-    const sameCommission=closureGroups().filter(x=>x.orientation===g.orientation&&x.commissionKey===g.commissionKey);
+  function studentBulletinRows(g,student,publishedOnly=false){
+    const sameCommission=closureGroups().filter(x=>x.orientation===g.orientation&&x.commissionKey===g.commissionKey&&(!publishedOnly||root().grading.closures?.[x.key]?.status==='publicado'));
     return sameCommission.map(group=>{
-      const closure=ensureClosure(group);
-      const row=rowFor(closure,student);
-      const d=ensureDefinitive(group),dr=definitiveRowFor(d,student);
+      const closure=publishedOnly?root().grading.closures?.[group.key]:ensureClosure(group);
+      if(!closure)return null;
+      const row=publishedOnly?(closure.rows?.[student.dni]||{final:'',observation:''}):rowFor(closure,student);
+      const d=publishedOnly?root().grading.definitives?.[definitiveKey(group)]:ensureDefinitive(group);
+      const dr=publishedOnly?(d?.rows?.[student.dni]||{final:'',observation:''}):definitiveRowFor(d,student);
       return {
         groupName:group.groupName,
         groupType:group.groupType,
@@ -424,13 +453,13 @@
         definitive:showDefinitiveInBulletin(group)?(dr.final||''):'',
         observation:row.observation||''
       };
-    });
+    }).filter(Boolean);
   }
 
-  function renderStudentBulletin(g,student){
+  function renderStudentBulletin(g,student,publishedOnly=false){
     const content=$('printContent'),modal=$('printModal');
     if(!content||!modal)return toast('No está disponible la vista de impresión.',true);
-    const rows=studentBulletinRows(g,student);
+    const rows=studentBulletinRows(g,student,publishedOnly);
     const criteriaVisible=!!root().grading.settings.showCriteriaToFamilies;
     const regularity=regularityFor(student.dni);
     const regularityStatus=regularity?.status||'Sin datos';
@@ -479,6 +508,23 @@
     modal.classList.add('open');
   }
 
+  function renderPublishedHome(){
+    const host=$('v77Root');if(!host)return;
+    const dnis=(accessScope.studentDnis||[]).map(x=>String(x||'').replace(/\D/g,'')).filter(Boolean);
+    const students=dnis.map(dni=>root().students?.[dni]).filter(Boolean);
+    const cards=[];
+    for(const student of students){
+      for(const key of studentCommissionKeys(student.dni)){
+        const groups=publishedGroupsForStudent(student.dni,key);if(!groups.length)continue;
+        const c=root().commissions?.[key]||{};cards.push({student,key,groups,course:c.course||groups[0]?.course||'',orientation:c.orientation||groups[0]?.orientation||''});
+      }
+    }
+    const body=cards.length?cards.map((x,i)=>'<article class="v77-card"><div class="v77-card-head"><span>'+esc(x.orientation)+'</span><b>'+x.groups.length+' resultados publicados</b></div><h3>'+esc((x.student.lastName||'')+' '+(x.student.firstName||''))+'</h3><p>'+esc(x.course)+' · DNI '+esc(x.student.dni)+'</p><button type="button" class="btn primary" data-v77-published="'+i+'">Ver boletín publicado</button></article>').join(''):'<div class="v77-empty"><strong>No hay resultados publicados.</strong><span>Cuando la escuela publique un cierre, aparecerá en esta sección.</span></div>';
+    host.innerHTML='<div class="v77-topbar"><button class="btn soft" type="button" data-v77-home>← Inicio</button></div><div class="v77-hero"><div class="eyebrow">Resultados publicados</div><h1>Boletines</h1><p>Solo se muestran cierres que la escuela ya publicó para los estudiantes vinculados a esta sesión.</p></div><div class="v77-course-stack">'+body+'</div>';
+    host.querySelector('[data-v77-home]')?.addEventListener('click',goHome);
+    host.querySelectorAll('[data-v77-published]').forEach(b=>b.onclick=()=>{const x=cards[Number(b.dataset.v77Published)];if(x)renderStudentBulletin(x.groups[0],x.student,true)});
+  }
+
   function printPreview(g,c,students){
     const content=$('printContent'),modal=$('printModal');
     if(!content||!modal)return toast('No está disponible la vista de impresión.',true);
@@ -505,5 +551,12 @@
     @media(max-width:980px){.v77-grid{grid-template-columns:1fr}.v77-filters{grid-template-columns:1fr 1fr}}@media(max-width:760px){.v77-browser-head,.v77-course-head,.v77-bulletin-head,.v77-bulletin-foot{align-items:flex-start;flex-direction:column}.v77-bulletin-student{text-align:left}.v77-filters{grid-template-columns:1fr}.v77-settings,.v77-workflow{grid-template-columns:1fr;align-items:stretch;flex-direction:column}.v77-actions,.v77-preview-controls{display:grid;grid-template-columns:1fr}.v77-actions .btn,.v77-preview-controls .btn,.v77-preview-controls label{width:100%;min-width:0}}
   `;document.head.appendChild(style);
 
-  window.PCIBulletinsV77={open,renderHome,renderClosure,closureGroups,regularityFor,familyGrade,studentBulletinRows,planGrade,planDate,baseGroupId,definitiveKey,definitiveGroups,ensureDefinitive,definitiveRowFor,definitiveReady,showDefinitiveInBulletin};
+  function setAccessScope(scope={}){
+    const role=['admin','teacher','student','family'].includes(scope.role)?scope.role:'admin';
+    accessScope={role,teacherId:String(scope.teacherId||''),studentDnis:Array.isArray(scope.studentDnis)?scope.studentDnis.map(x=>String(x||'').replace(/\D/g,'')).filter(Boolean):[],commissionKeys:Array.isArray(scope.commissionKeys)?scope.commissionKeys.map(String):null};
+    selectedKey='';homeFilters={orientation:'',year:'',course:''};patchHome();
+    if($('bulletins')?.classList.contains('active'))open();
+  }
+
+  window.PCIBulletinsV77={open,renderHome,renderClosure,closureGroups,visibleClosureGroups,regularityFor,familyGrade,studentBulletinRows,publishedGroupsForStudent,studentCommissionKeys,renderPublishedHome,planGrade,planDate,baseGroupId,definitiveKey,definitiveGroups,ensureDefinitive,definitiveRowFor,definitiveReady,showDefinitiveInBulletin,setAccessScope,getAccessScope:()=>({...accessScope})};
 })();

@@ -72,7 +72,8 @@
 
   function scopedContexts(){
     const all=allContexts();
-    if(accessScope.role!=='teacher'||!accessScope.teacherId)return all;
+    if(accessScope.role==='admin')return all;
+    if(accessScope.role!=='teacher'||!accessScope.teacherId)return [];
     return all.filter(ctx=>teachersFor(ctx).some(t=>String(t.id||t.teacherId||'')===String(accessScope.teacherId)));
   }
 
@@ -143,6 +144,7 @@
 
   function patchHomeEntry(){
     const card=$('v75Grading');if(!card)return;
+    card.hidden=!['admin','teacher'].includes(accessScope.role);
     const btn=card.querySelector('button');
     if(btn){
       btn.disabled=false;btn.className='btn primary';btn.textContent='Abrir Calificaciones';
@@ -168,6 +170,7 @@
   }
 
   function openGrading(){
+    if(!['admin','teacher'].includes(accessScope.role))return toast('No tenés permiso para acceder a Calificaciones.',true);
     showGradingScreen();
     renderHome();
   }
@@ -436,12 +439,13 @@
   `;document.head.appendChild(style);
 
   function setAccessScope(scope={}){
-    accessScope={
-      role:scope.role==='teacher'?'teacher':'admin',
-      teacherId:String(scope.teacherId||'')
-    };
+    const role=['admin','teacher','student','family'].includes(scope.role)?scope.role:'admin';
+    accessScope={role,teacherId:String(scope.teacherId||'')};
     homeFilters={orientation:'',year:'',course:''};
-    if($('grading')?.classList.contains('active'))renderHome();
+    patchHomeEntry();
+    if($('grading')?.classList.contains('active')){
+      if(!['admin','teacher'].includes(accessScope.role))goHome();else renderHome();
+    }
   }
 
   function contextsForTeacher(teacherId){
