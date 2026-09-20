@@ -15,6 +15,7 @@
     state.institutional.grading=state.institutional.grading||{plans:{}};
     state.institutional.grading.plans=state.institutional.grading.plans||{};
     state.institutional.grading.closures=state.institutional.grading.closures||{};
+    state.institutional.grading.definitives=state.institutional.grading.definitives||{};
     state.institutional.grading.settings=state.institutional.grading.settings||{showCriteriaToFamilies:false};
     return state.institutional;
   }
@@ -98,7 +99,74 @@
 
   function planGrade(p,dni){
     const r=p.rows?.[dni];
-    return r?.weighted!==''&&r?.weighted!=null ? r.weighted : (r?.final??'');
+    return r?.final??'';
+  }
+
+  function planDate(p,dni){
+    return String(p.rows?.[dni]?.completedAt||'');
+  }
+
+  function baseGroupId(groupId){
+    return String(groupId||'').replace(/-c\d+$/,'');
+  }
+
+  function termNumber(g){
+    const m=String(g?.groupId||'').match(/-c(\d+)$/);
+    return m?Number(m[1]):null;
+  }
+
+  function definitiveKey(g){
+    if(closureType(g)==='Cierre anual')return ['annual',g.orientation,g.groupId,g.commissionKey].join('|||');
+    return ['cuatrimestral',g.orientation,baseGroupId(g.groupId),g.year,g.commissionKey].join('|||');
+  }
+
+  function definitiveGroups(g){
+    if(closureType(g)==='Cierre anual')return [g];
+    const base=baseGroupId(g.groupId);
+    return closureGroups().filter(x=>
+      x.orientation===g.orientation&&
+      x.commissionKey===g.commissionKey&&
+      Number(x.year)===Number(g.year)&&
+      closureType(x)==='Cierre cuatrimestral'&&
+      baseGroupId(x.groupId)===base
+    ).sort((a,b)=>(termNumber(a)||0)-(termNumber(b)||0));
+  }
+
+  function ensureDefinitive(g){
+    const store=root().grading.definitives;
+    const key=definitiveKey(g);
+    if(!store[key])store[key]={
+      key,
+      orientation:g.orientation,
+      baseGroupId:closureType(g)==='Cierre anual'?g.groupId:baseGroupId(g.groupId),
+      year:g.year,
+      commissionKey:g.commissionKey,
+      course:g.course,
+      rows:{}
+    };
+    store[key].rows=store[key].rows||{};
+    return store[key];
+  }
+
+  function definitiveRowFor(d,s){
+    if(!d.rows[s.dni])d.rows[s.dni]={dni:s.dni,final:'',observation:''};
+    return d.rows[s.dni];
+  }
+
+  function definitiveReady(g,s){
+    const groups=definitiveGroups(g);
+    if(closureType(g)==='Cierre anual'){
+      const c=ensureClosure(g);
+      return !!String(rowFor(c,s).final||'').trim();
+    }
+    if(groups.length<2)return false;
+    return groups.every(group=>!!String(rowFor(ensureClosure(group),s).final||'').trim());
+  }
+
+  function showDefinitiveInBulletin(g){
+    if(closureType(g)==='Cierre anual')return true;
+    const groups=definitiveGroups(g);
+    return groups.length&&groups[groups.length-1]?.key===g.key;
   }
 
   const localDate=now=>new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
@@ -282,12 +350,13 @@
         <div class="v77-table-wrap"><table class="v77-table"><thead><tr>
           <th>DNI</th><th>Estudiante</th>
           ${g.plans.map(p=>`<th>Plan ${esc(p.planNumber)}<small>${esc(p.planName||'')}</small></th>`).join('')}
-          <th>Calificación de cierre</th><th>Observación</th>
+          <th>${closureType(g)==='Cierre anual'?'Calificación anual':'Calificación cuatrimestral'}</th><th>Calificación definitiva</th><th>Observación</th>
         </tr></thead><tbody>
-          ${students.map(s=>{const r=rowFor(c,s);return `<tr data-dni="${esc(s.dni)}">
+          ${students.map(s=>{const r=rowFor(c,s),d=ensureDefinitive(g),dr=definitiveRowFor(d,s),defReady=definitiveReady(g,s);return `<tr data-dni="${esc(s.dni)}">
             <td>${esc(s.dni)}</td><td><strong>${esc((s.lastName||'')+' '+(s.firstName||''))}</strong></td>
-            ${g.plans.map(p=>`<td>${esc(planGrade(p,s.dni)||'—')}</td>`).join('')}
+            ${g.plans.map(p=>`<td><strong>${esc(planGrade(p,s.dni)||'—')}</strong>${planDate(p,s.dni)?`<small>${esc(fmtDate(planDate(p,s.dni)))}</small>`:''}</td>`).join('')}
             <td><input data-v77-final value="${esc(r.final)}" ${c.status==='publicado'?'readonly':''}></td>
+            <td><input data-v77-definitive value="${esc(dr.final)}" ${defReady?'':'disabled'} title="${defReady?'Definición colegiada manual':'Primero deben estar cargados los cierres necesarios'}"><small>${defReady?'Carga colegiada · sin promedio automático':'Pendiente de cierres previos'}</small></td>
             <td><input data-v77-obs value="${esc(r.observation)}" ${c.status==='publicado'?'readonly':''}></td>
           </tr>`}).join('')}
         </tbody></table></div>
@@ -311,7 +380,14 @@
     host.querySelector('[data-v77-validator]').onchange=e=>{c.validatorTeacherId=e.target.value;save()};
     host.querySelectorAll('tbody tr').forEach(tr=>{
       const r=c.rows[tr.dataset.dni];
-      tr.querySelector('[data-v77-final]').onchange=e=>{r.final=e.target.value;save();renderClosure()};
+      tr.querySelector('[data-v77-final]').onchange=e=>{r.final=e.target.value.trim();save();renderClosure()};
+      const defInput=tr.querySelector('[data-v77-definitive]');
+      if(defInput)defInput.onchange=e=>{
+        const d=ensureDefinitive(g),dr=definitiveRowFor(d,{dni:tr.dataset.dni});
+        dr.final=e.target.value.trim();
+        save();
+        renderClosure();
+      };
       tr.querySelector('[data-v77-obs]').onchange=e=>{r.observation=e.target.value;save()};
     });
     host.querySelector('[data-v77-review]').onclick=()=>{c.status='revision';save();renderClosure();toast('Cierre enviado a revisión.')};
@@ -337,12 +413,15 @@
     return sameCommission.map(group=>{
       const closure=ensureClosure(group);
       const row=rowFor(closure,student);
+      const d=ensureDefinitive(group),dr=definitiveRowFor(d,student);
       return {
         groupName:group.groupName,
         groupType:group.groupType,
         closureType:closure.type,
         status:closure.status,
+        plans:group.plans.map(p=>({planNumber:p.planNumber,planName:p.planName||'',grade:planGrade(p,student.dni)||'',date:planDate(p,student.dni)||''})),
         final:row.final||'',
+        definitive:showDefinitiveInBulletin(group)?(dr.final||''):'',
         observation:row.observation||''
       };
     });
@@ -380,13 +459,14 @@
           ${regularity?`<span><b>Injustificadas</b> ${esc(regularity.bimester)} bimestre · ${esc(regularity.annual)} anuales</span>`:''}
         </div>
         <table class="v77-bulletin-table">
-          <thead><tr><th>Espacio / agrupamiento</th><th>Tipo de cierre</th><th>Estado</th><th>Calificación</th><th>Observación</th></tr></thead>
+          <thead><tr><th>Espacio / agrupamiento</th><th>Planes</th><th>Cierre</th><th>Calificación definitiva</th><th>Estado</th><th>Observación</th></tr></thead>
           <tbody>
             ${rows.map(r=>`<tr>
-              <td><strong>${esc(r.groupName)}</strong></td>
-              <td>${esc(r.closureType)}</td>
-              <td>${esc(statusLabel(r.status))}</td>
+              <td><strong>${esc(r.groupName)}</strong><small>${esc(r.closureType)}</small></td>
+              <td>${r.plans.map(p=>`<div class="v77-plan-result"><b>Plan ${esc(p.planNumber)}</b> ${esc(p.grade||'—')}${p.date?` <small>${esc(fmtDate(p.date))}</small>`:''}</div>`).join('')}</td>
               <td class="v77-bulletin-grade">${esc(familyGrade(r.final,regularity))}</td>
+              <td class="v77-bulletin-grade">${r.definitive?esc(familyGrade(r.definitive,regularity)):'—'}</td>
+              <td>${esc(statusLabel(r.status))}</td>
               <td>${esc(r.observation||'')}</td>
             </tr>`).join('')}
           </tbody>
@@ -421,9 +501,9 @@
     .v77-settings,.v77-workflow,.v77-table-card,.v77-preview{margin-top:14px;padding:17px}.v77-settings{display:flex;justify-content:space-between;align-items:center;gap:14px}.v77-settings h2,.v77-workflow h2,.v77-table-card h2,.v77-preview h2{margin:4px 0}.v77-settings p,.v77-preview p{margin:0;color:var(--muted);font-size:.64rem}.v77-preview-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:12px}.v77-preview-controls label{display:grid;gap:5px;min-width:240px;font-size:.58rem;font-weight:900}.v77-preview-controls select{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.v77-bulletin-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.v77-bulletin-student{text-align:right}.v77-bulletin-student small,.v77-bulletin-student span{display:block;color:#5f7180;font-size:.75rem}.v77-bulletin-student strong{display:block;font-size:1.05rem;margin:3px 0}.v77-bulletin-meta{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.v77-bulletin-meta span{padding:6px 9px;border:1px solid #ccd7df;border-radius:999px;font-size:.72rem}.v77-regularity-status.regular{background:#edf8f3}.v77-regularity-status.no-regular{background:#fff0f2;border-color:#d6a4ae}.v77-bulletin-table{width:100%;border-collapse:collapse;font-size:.78rem}.v77-bulletin-table th,.v77-bulletin-table td{padding:8px;border:1px solid #cfd8df;text-align:left}.v77-bulletin-table th{background:#eef4f7}.v77-bulletin-grade{font-size:1rem;font-weight:900;text-align:center!important}.v77-bulletin-foot{display:flex;justify-content:space-between;gap:12px;margin-top:14px;color:#607280;font-size:.7rem}
     .v77-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.v77-card{padding:15px;border:1px solid var(--line);border-radius:17px;background:#fff}.v77-card-head{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.55rem}.v77-card h3{margin:8px 0 4px}.v77-card p{margin:0;color:var(--muted);font-size:.6rem}.v77-tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.v77-tags span{padding:5px 7px;border-radius:999px;background:var(--band);font-size:.52rem}.v77-tags .publicado{background:var(--ok-soft);color:var(--ok)}.v77-tags .validado{background:var(--mint-soft);color:var(--mint-dark)}.v77-empty,.v77-warning{margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}.v77-warning{border-color:#dfc476;background:#fff8df;color:#775b0c}
     .v77-workflow{display:grid;grid-template-columns:1fr minmax(220px,320px) auto;gap:12px;align-items:end}.v77-workflow label{display:grid;gap:5px;font-size:.58rem;font-weight:900}.v77-workflow select{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.v77-actions{display:flex;gap:6px;flex-wrap:wrap}
-    .v77-table-wrap{overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px}.v77-table{width:100%;min-width:1100px;border-collapse:collapse;font-size:.58rem}.v77-table th,.v77-table td{padding:7px;border-bottom:1px solid var(--line);vertical-align:middle}.v77-table th{background:var(--band);text-align:left}.v77-table th small{display:block;margin-top:2px;color:var(--muted);font-weight:500}.v77-table input{width:100%;padding:7px;border:1px solid var(--line);border-radius:8px}
+    .v77-table-wrap{overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px}.v77-table{width:100%;min-width:1100px;border-collapse:collapse;font-size:.58rem}.v77-table th,.v77-table td{padding:7px;border-bottom:1px solid var(--line);vertical-align:middle}.v77-table th{background:var(--band);text-align:left}.v77-table th small,.v77-table td small{display:block;margin-top:2px;color:var(--muted);font-weight:500}.v77-table input{width:100%;padding:7px;border:1px solid var(--line);border-radius:8px}.v77-plan-result{white-space:nowrap;margin:2px 0}.v77-plan-result small{display:inline;margin-left:4px;color:#607280}
     @media(max-width:980px){.v77-grid{grid-template-columns:1fr}.v77-filters{grid-template-columns:1fr 1fr}}@media(max-width:760px){.v77-browser-head,.v77-course-head,.v77-bulletin-head,.v77-bulletin-foot{align-items:flex-start;flex-direction:column}.v77-bulletin-student{text-align:left}.v77-filters{grid-template-columns:1fr}.v77-settings,.v77-workflow{grid-template-columns:1fr;align-items:stretch;flex-direction:column}.v77-actions,.v77-preview-controls{display:grid;grid-template-columns:1fr}.v77-actions .btn,.v77-preview-controls .btn,.v77-preview-controls label{width:100%;min-width:0}}
   `;document.head.appendChild(style);
 
-  window.PCIBulletinsV77={open,renderHome,renderClosure,closureGroups,regularityFor,familyGrade,studentBulletinRows};
+  window.PCIBulletinsV77={open,renderHome,renderClosure,closureGroups,regularityFor,familyGrade,studentBulletinRows,planGrade,planDate,baseGroupId,definitiveKey,definitiveGroups,ensureDefinitive,definitiveRowFor,definitiveReady,showDefinitiveInBulletin};
 })();

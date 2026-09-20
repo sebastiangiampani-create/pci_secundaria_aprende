@@ -4,6 +4,7 @@
   const slug=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   const STAGES=[['punto_partida','Punto de partida'],['indagacion','Indagación'],['produccion','Producción'],['evaluacion','Evaluación']];
   const PLAN_STATUS=[['no_iniciado','No iniciado'],['en_proceso','En proceso'],['finalizado','Finalizado']];
+  const localDate=now=>new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
   let selectedContext=null;
   let homeFilters={orientation:'',year:'',course:''};
   let accessScope={role:'admin',teacherId:''};
@@ -120,16 +121,12 @@
   function criteriaReady(e){return e.criteria.slice(0,4).every(x=>String(x||'').trim())}
 
   function rowFor(e,s){
-    if(!e.rows[s.dni])e.rows[s.dni]={dni:s.dni,status:'no_iniciado',stage:'',criteria:['','','','',''],final:'',weight:'',weighted:''};
+    if(!e.rows[s.dni])e.rows[s.dni]={dni:s.dni,status:'no_iniciado',stage:'',criteria:['','','','',''],final:'',completedAt:'',weight:'',weighted:''};
     const r=e.rows[s.dni];
     r.status=r.status||((r.final||r.stage)?'en_proceso':'no_iniciado');
+    r.completedAt=String(r.completedAt||'');
     r.criteria=Array.isArray(r.criteria)?r.criteria.slice(0,5):['','','','',''];while(r.criteria.length<5)r.criteria.push('');
     return r;
-  }
-
-  function calcWeighted(r){
-    const f=Number(String(r.final).replace(',','.')),w=Number(String(r.weight).replace(',','.'));
-    r.weighted=(Number.isFinite(f)&&Number.isFinite(w)&&String(r.final)!==''&&String(r.weight)!=='')?String(Math.round((f*w/100)*100)/100):'';
   }
 
   function saveAll(){save()}
@@ -326,15 +323,14 @@
     return `<div class="v76-sheet-wrap"><table class="v76-sheet"><thead><tr>
       <th>DNI</th><th>Estudiante</th><th>Estado del plan</th><th>Etapa alcanzada</th>
       ${e.criteria.map((c,i)=>c?`<th title="${esc(c)}">${esc(c)}${i===4?' (opcional)':''}</th>`:'').join('')}
-      <th>Calificación final</th><th>Ponderación %</th><th>Calificación ponderada</th>
-    </tr></thead><tbody>${students.map(s=>{const r=rowFor(e,s);calcWeighted(r);return`<tr data-dni="${esc(s.dni)}">
+      <th>Calificación final</th><th>Fecha de finalización</th>
+    </tr></thead><tbody>${students.map(s=>{const r=rowFor(e,s);return`<tr data-dni="${esc(s.dni)}">
       <td>${esc(s.dni)}</td><td><strong>${esc(s.lastName||'')} ${esc(s.firstName||'')}</strong></td>
       <td><select data-v76-field="status">${PLAN_STATUS.map(([k,l])=>`<option value="${k}" ${r.status===k?'selected':''}>${l}</option>`).join('')}</select></td>
       <td><select data-v76-field="stage" ${r.status==='no_iniciado'?'disabled':''}><option value="">—</option>${STAGES.map(([k,l])=>`<option value="${k}" ${r.stage===k?'selected':''}>${l}</option>`).join('')}</select></td>
       ${r.criteria.map((v,i)=>e.criteria[i]?`<td><input data-v76-score="${i}" value="${esc(v)}"></td>`:'').join('')}
       <td><input type="number" min="6" max="10" step="1" data-v76-field="final" value="${esc(r.final)}" ${r.status==='finalizado'?'':'disabled'}></td>
-      <td><input data-v76-field="weight" value="${esc(r.weight)}"></td>
-      <td><input data-v76-field="weighted" readonly value="${esc(r.weighted)}"></td>
+      <td><input type="date" data-v76-field="completedAt" value="${esc(r.completedAt)}" ${r.status==='finalizado'?'':'disabled'}></td>
     </tr>`}).join('')}</tbody></table></div>`;
   }
 
@@ -344,21 +340,24 @@
       const dni=tr.dataset.dni,s=students.find(x=>x.dni===dni),r=rowFor(e,s);
       tr.querySelectorAll('[data-v76-score]').forEach(x=>x.onchange=()=>{r.criteria[Number(x.dataset.v76Score)]=x.value;saveAll()});
       tr.querySelectorAll('[data-v76-field]').forEach(x=>x.onchange=()=>{
-        if(x.dataset.v76Field==='weighted')return;
         const field=x.dataset.v76Field;
         if(field==='status'){
           r.status=x.value;
-          if(r.status==='no_iniciado'){r.stage='';r.final=''}
-          if(r.status!=='finalizado')r.final='';
+          if(r.status==='no_iniciado'){r.stage='';r.final='';r.completedAt=''}
+          if(r.status!=='finalizado'){r.final='';r.completedAt=''}
+          if(r.status==='finalizado'&&!r.completedAt)r.completedAt=localDate(new Date());
         }else if(field==='final'){
           const n=Number(x.value);
           r.final=(r.status==='finalizado'&&Number.isFinite(n)&&n>=6&&n<=10)?String(n):'';
           x.value=r.final;
+          if(r.final&&!r.completedAt)r.completedAt=localDate(new Date());
           if(r.status==='finalizado'&&!r.final)toast('Un plan Finalizado se califica de 6 a 10.',true);
+        }else if(field==='completedAt'){
+          r.completedAt=r.status==='finalizado'?String(x.value||''):'';
+          x.value=r.completedAt;
         }else r[field]=x.value;
-        calcWeighted(r);saveAll();
-        const w=tr.querySelector('[data-v76-field="weighted"]');if(w)w.value=r.weighted;
-        if(field==='stage'||field==='status')renderPlan();
+        saveAll();
+        if(field==='stage'||field==='status'||field==='final')renderPlan();
       });
     });
   }
@@ -376,14 +375,14 @@
     if(!criteriaReady(e))return toast('Primero completá los cuatro criterios obligatorios.',true);
     try{
       const XLSX=await loadXLSX();
-      const rows=students.map(s=>{const r=rowFor(e,s);calcWeighted(r);const o={DNI:s.dni,Apellido:s.lastName||'',Nombre:s.firstName||'','Estado del plan':PLAN_STATUS.find(x=>x[0]===r.status)?.[1]||'No iniciado','Etapa alcanzada':STAGES.find(x=>x[0]===r.stage)?.[1]||''};
+      const rows=students.map(s=>{const r=rowFor(e,s);const o={DNI:s.dni,Apellido:s.lastName||'',Nombre:s.firstName||'','Estado del plan':PLAN_STATUS.find(x=>x[0]===r.status)?.[1]||'No iniciado','Etapa alcanzada':STAGES.find(x=>x[0]===r.stage)?.[1]||''};
         e.criteria.forEach((c,i)=>{if(c)o[c]=r.criteria[i]||''});
-        o['Calificación final']=r.final||'';o['Ponderación %']=r.weight||'';o['Calificación ponderada']=r.weighted||'';return o;
+        o['Calificación final']=r.final||'';o['Fecha de finalización']=r.completedAt||'';return o;
       });
       const ws=XLSX.utils.json_to_sheet(rows);
       const meta=XLSX.utils.aoa_to_sheet([
         ['__PLAN_KEY',ctx.key],['Orientación',ctx.orientation],['Agrupamiento',e.groupName],['Plan',ctx.planNumber],['Comisión',ctx.commission.course],
-        ['IMPORTANTE','No modificar DNI ni encabezados. La calificación ponderada se recalcula al importar.']
+        ['IMPORTANTE','No modificar DNI ni encabezados. Solo un Plan Finalizado admite calificación numérica de 6 a 10.']
       ]);
       const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'CALIFICACIONES');XLSX.utils.book_append_sheet(wb,meta,'PLAN');
       XLSX.writeFile(wb,`calificaciones-${slug(e.groupName)}-plan-${ctx.planNumber}-${slug(ctx.commission.course)}.xlsx`);
@@ -409,8 +408,9 @@
         e.criteria.forEach((c,i)=>{if(c&&Object.prototype.hasOwnProperty.call(raw,c))r.criteria[i]=String(raw[c]??'')});
         const importedFinal=Number(String(raw['Calificación final']??'').replace(',','.'));
         r.final=(r.status==='finalizado'&&Number.isFinite(importedFinal)&&importedFinal>=6&&importedFinal<=10)?String(importedFinal):'';
-        r.weight=String(raw['Ponderación %']??r.weight??'');
-        calcWeighted(r);updated++;
+        r.completedAt=r.status==='finalizado'?String(raw['Fecha de finalización']||r.completedAt||'').slice(0,10):'';
+        if(r.final&&!r.completedAt)r.completedAt=localDate(new Date());
+        updated++;
       }
       saveAll();renderPlan();toast(`${updated} estudiantes actualizados${unknown?` · ${unknown} DNI no encontrados`:''}.`,unknown>0);
     }catch(err){toast(err.message||String(err),true)}
