@@ -34,7 +34,7 @@ jobs:
           set -euo pipefail
           grep -Fq "app-safe.html?v=" index.html
           grep -Fq "fetch('app.html?v=" app-safe.html
-          for needle in             "src/v71-management-nav-reset.js"             "src/v72-students-commissions.js"             "src/v78-asistencia.js"             "src/v79-regularidad.js"             "src/v76-calificaciones.js"             "src/v77-boletines-cierres.js"             "src/v80-access-control.js"; do
+          for needle in             "src/v71-management-nav-reset.js"             "src/v72-students-commissions.js"             "src/v78-asistencia.js"             "src/v79-regularidad.js"             "src/v76-calificaciones.js"             "src/v77-boletines-cierres.js"             "src/v80-access-control.js"             "src/v81-stable-scheduler.js"; do
             grep -Fq "$needle" app-safe.html
           done
       - name: Run automated tests
@@ -58,6 +58,7 @@ jobs:
             'src/v71-operational-defaults.js':['threePlus:\'two-per-team\'','closedByV71:true','planningOverrides','validated:true','PCIOperationalDefaultsV71'],
             'src/v71-no-tutoria-contents.js':['no levanta contenidos oficiales de Tutoría','Otros formatos pedagógicos','getAreaPool','PCINoTutoriaContentsV71'],
             'src/v71-lock-safety.js':['annualScheduleLocks','function validate(assignments','teamMembers','simulateAssignments','PCIAnnualLockSafetyV71']
+            ,'src/v81-stable-scheduler.js':['v81-annual-stable','teacher-slots-identical','sourceSignature','function continuity(','function preflight(','PCIScheduleStableV81']
           };
           for(const [file,needles] of Object.entries(checks)){
             const text=fs.readFileSync(file,'utf8');

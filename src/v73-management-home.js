@@ -42,8 +42,8 @@
     const loadedCommissions=commissions.filter(c=>(r.commissions?.[c.key]?.students||[]).length>0).length;
     const teams=Object.values(r.areaTeams||{});
     const availCount=Object.keys(r.availabilityPreferences||r.availability||{}).length;
-    const scheduleCount=(r.annualScheduleVersions||[]).length;
-    return {teachers,assigned,total:all.length,commissions,loadedCommissions,students:students.size,teams,availCount,scheduleCount};
+    const scheduleCount=(r.annualScheduleVersions||[]).length,scheduleStatus=window.PCIScheduleStableV81?.status?.()||null;
+    return {teachers,assigned,total:all.length,commissions,loadedCommissions,students:students.size,teams,availCount,scheduleCount,scheduleStatus};
   }
 
   function statusFor(key,m){
@@ -52,7 +52,7 @@
     if(key==='comisiones')return `${m.commissions.length} cursos · ${m.students} estudiantes`;
     if(key==='equipos')return `${m.teams.length} equipos detectados`;
     if(key==='disponibilidad')return `${m.availCount}/${m.teachers.length} docentes configurados`;
-    if(key==='horarios')return m.scheduleCount?'Horario generado':'Pendiente de generar';
+    if(key==='horarios')return m.scheduleStatus?.label||(m.scheduleCount?'Borrador generado':'Pendiente de generar');
     if(key==='excel')return 'Planta y asignaciones';
     if(key==='respaldo')return 'Exportación institucional';
     return '';
@@ -78,6 +78,7 @@
       return front+(t.meetingHours==null?3:Number(t.meetingHours)||0)>nominal;
     }).length;
     if(over)alerts.push(`${over} docentes con sobreasignación`);
+    if(m.scheduleStatus?.state==='stale')alerts.push('horario vigente desactualizado');
 
     home.innerHTML=`
       <div class="v73-hero">
