@@ -9,6 +9,8 @@
       find:()=>[...document.querySelectorAll('#v48InstitutionalContent > .v71o-assignment')]},
     {key:'comisiones',title:'Cursos, comisiones y estudiantes',desc:'Cursos y divisiones de la escuela, con sus listados de estudiantes.',icon:'▤',
       find:()=>[$('v72StudentsCommissions')].filter(Boolean)},
+    {key:'asistencia',title:'Asistencia',desc:'Registro diario por estudiante, motivo, justificación y cómputo de inasistencias.',icon:'✓',
+      find:()=>[$('v78Attendance')].filter(Boolean)},
     {key:'equipos',title:'Equipos y reuniones',desc:'Equipos derivados de los agrupamientos reales y coincidencias semanales.',icon:'◎',
       find:()=>[$('v53Workload')].filter(Boolean)},
     {key:'disponibilidad',title:'Disponibilidad',desc:'Días disponibles, no disponibles y preferencias de cada docente.',icon:'◫',
@@ -50,6 +52,7 @@
     if(key==='docentes')return `${m.teachers.length} docentes cargados`;
     if(key==='asignaciones')return `${m.assigned}/${m.total} espacios asignados`;
     if(key==='comisiones')return `${m.commissions.length} cursos · ${m.students} estudiantes`;
+    if(key==='asistencia')return `${window.PCIAttendanceV78?.records?.().length||0} registros`;
     if(key==='equipos')return `${m.teams.length} equipos detectados`;
     if(key==='disponibilidad')return `${m.availCount}/${m.teachers.length} docentes configurados`;
     if(key==='horarios')return m.scheduleCount?'Horario generado':'Pendiente de generar';
@@ -128,6 +131,7 @@
   function prepareModule(key){
     try{
       if(key==='comisiones')window.PCIStudentsCommissionsV72?.render?.();
+      if(key==='asistencia')window.PCIAttendanceV78?.render?.();
       if(key==='disponibilidad')window.PCIAvailabilityPreferencesV60?.render?.();
       if(key==='excel')window.PCISimpleAssignmentExcelV71?.render?.();
       if(key==='respaldo')window.PCIInstitutionalExportV68?.decorate?.();
