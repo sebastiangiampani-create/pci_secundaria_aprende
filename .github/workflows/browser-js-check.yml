@@ -52,7 +52,7 @@ jobs:
             'src/v68-staff-planning.js':['function demand()','function teacherPlanning(','function buildProposal(','assignmentLocks','planningOverrides','state.institutional'],
             'src/v68-annual-scheduler.js':['function simulateAssignments(','proposalMode','allowMinimumOffer',"engine:'v68-annual'",'teamCommonHours'],
             'src/v68-institutional-export.js':["add('Demanda'","add('Perfiles'","add('Planificacion'","add('Propuesta'",'respaldo-completo-v68'],
-            'src/v69-institutional-accordion-fix.js':['Implementación institucional por bloques','Abrir todo','Cerrar todo','localStorage','PCIInstitutionalAccordionV69'],
+            'src/v69-institutional-accordion-fix.js':['makeAlwaysOpen','v71e-hidden','PCIInstitutionalAccordionV69'],
             'src/v70-staffing-workbook-optimizer.js':['DOCENTES','HABILITACIONES','ASIGNACIONES FIJAS','DISPONIBILIDAD','CATALOGO','DNI/CUIL','HC objetivo','HC máximo','function searchProposal(','simulateAssignments','assignmentLocks','v70-schedule-search','PCIStaffingV70'],
             'src/v71-operational-closeout.js':['v71-annual-strict','teacher-slots-identical','fase1-temporal-pairs','annualScheduleLocks','planningPolicy','two-per-team','Restaurar respaldo completo','before-restore','PCIAnnualSchedulerV71','function buildPairs(','function continuity('],
             'src/v71-operational-defaults.js':['threePlus:\'two-per-team\'','closedByV71:true','planningOverrides','validated:true','PCIOperationalDefaultsV71'],
