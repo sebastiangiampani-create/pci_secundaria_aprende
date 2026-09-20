@@ -376,8 +376,8 @@
     if(!criteriaReady(e))return toast('Primero completá los cuatro criterios obligatorios.',true);
     try{
       const XLSX=await loadXLSX();
-      const rows=students.map(s=>{const r=rowFor(e,s);calcWeighted(r);const o={DNI:s.dni,Apellido:s.lastName||'',Nombre:s.firstName||'','Etapa alcanzada':STAGES.find(x=>x[0]===r.stage)?.[1]||''};
-        e.criteria.forEach((c,i)=>o[c]=r.criteria[i]||'');
+      const rows=students.map(s=>{const r=rowFor(e,s);calcWeighted(r);const o={DNI:s.dni,Apellido:s.lastName||'',Nombre:s.firstName||'','Estado del plan':PLAN_STATUS.find(x=>x[0]===r.status)?.[1]||'No iniciado','Etapa alcanzada':STAGES.find(x=>x[0]===r.stage)?.[1]||''};
+        e.criteria.forEach((c,i)=>{if(c)o[c]=r.criteria[i]||''});
         o['Calificación final']=r.final||'';o['Ponderación %']=r.weight||'';o['Calificación ponderada']=r.weighted||'';return o;
       });
       const ws=XLSX.utils.json_to_sheet(rows);
@@ -402,10 +402,13 @@
       for(const raw of data){
         const dni=String(raw.DNI||'').replace(/\D/g,'');const s=studentMap.get(dni);if(!s){if(dni)unknown++;continue}
         const r=rowFor(e,s);
+        const statusLabel=String(raw['Estado del plan']||'').trim();
+        r.status=PLAN_STATUS.find(x=>x[1].toLowerCase()===statusLabel.toLowerCase())?.[0]||r.status||'no_iniciado';
         const stageLabel=String(raw['Etapa alcanzada']||'').trim();
         r.stage=STAGES.find(x=>x[1].toLowerCase()===stageLabel.toLowerCase())?.[0]||r.stage||'';
-        e.criteria.forEach((c,i)=>{if(Object.prototype.hasOwnProperty.call(raw,c))r.criteria[i]=String(raw[c]??'')});
-        r.final=String(raw['Calificación final']??r.final??'');
+        e.criteria.forEach((c,i)=>{if(c&&Object.prototype.hasOwnProperty.call(raw,c))r.criteria[i]=String(raw[c]??'')});
+        const importedFinal=Number(String(raw['Calificación final']??'').replace(',','.'));
+        r.final=(r.status==='finalizado'&&Number.isFinite(importedFinal)&&importedFinal>=6&&importedFinal<=10)?String(importedFinal):'';
         r.weight=String(raw['Ponderación %']??r.weight??'');
         calcWeighted(r);updated++;
       }
