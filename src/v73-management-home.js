@@ -14,7 +14,7 @@
     {key:'disponibilidad',title:'Disponibilidad',desc:'Días disponibles, no disponibles y preferencias de cada docente.',icon:'◫',
       find:()=>[$('v60Availability')].filter(Boolean)},
     {key:'horarios',title:'Horarios',desc:'Generación y vistas por curso, docente y reuniones.',icon:'◷',
-      find:()=>findByHeading(/Vistas del horario|horario institucional|grilla|horario/i)},
+      find:()=>[$('v65AnnualScheduler')].filter(Boolean).concat(findByHeading(/Vistas del horario|horario institucional|grilla|horario/i)).filter((x,i,a)=>a.indexOf(x)===i)},
     {key:'excel',title:'Carga masiva',desc:'Importación de planta, cargos y asignaciones mediante Excel.',icon:'⇩',
       find:()=>[$('v71SimpleAssignmentExcel')].filter(Boolean)},
     {key:'respaldo',title:'Respaldo',desc:'Exportación, impresión y respaldo de la gestión institucional.',icon:'□',
@@ -132,7 +132,7 @@
       if(key==='disponibilidad')window.PCIAvailabilityPreferencesV60?.render?.();
       if(key==='excel')window.PCISimpleAssignmentExcelV71?.render?.();
       if(key==='respaldo')window.PCIInstitutionalExportV68?.decorate?.();
-      if(key==='horarios')window.PCIAnnualSchedulerV68?.render?.();
+      if(key==='horarios'){window.PCIAnnualSchedulerV65?.render?.();setTimeout(()=>window.PCIScheduleStableV81?.decorate?.(),0)}
       if(key==='equipos')window.PCIAutoAreaCoincidenceV54?.deriveTeams?.();
     }catch(e){console.warn('V73 prepare module',key,e)}
   }
