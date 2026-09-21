@@ -47,3 +47,10 @@ if(!branding.includes('installHeaderLogo')||!branding.includes('pciOfflineInstit
   console.error('El branding offline no inserta encabezado y pie institucional.');
   process.exit(1);
 }
+
+
+const bundledCore=fs.readFileSync(path.join(root,'app-core.html'),'utf8');
+if(!bundledCore.includes('<script src="_offline/branding-runtime.js"></script>')){
+  console.error('El app-core offline no carga branding-runtime.js en el documento final.');
+  process.exit(1);
+}
