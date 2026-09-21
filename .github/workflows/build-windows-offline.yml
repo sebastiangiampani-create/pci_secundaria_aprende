@@ -1,0 +1,94 @@
+name: Build Windows Offline r37
+
+on:
+  push:
+    branches:
+      - windows-offline-r37
+    paths:
+      - "windows-offline/**"
+      - ".github/workflows/build-windows-offline.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout r37 offline branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Verify original r37 tests
+        shell: pwsh
+        run: npm test
+
+      - name: Install Windows packaging dependencies
+        working-directory: windows-offline
+        shell: pwsh
+        run: npm install --no-audit --no-fund
+
+      - name: Prepare immutable r37 app bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $bundle = Join-Path $PWD "windows-offline\app-bundle"
+          if (Test-Path $bundle) { Remove-Item $bundle -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $bundle | Out-Null
+
+          Copy-Item "index.html" $bundle
+          Copy-Item "app-core.html" $bundle
+          Copy-Item "app-safe.html" $bundle
+          Copy-Item "app.html" $bundle
+          Copy-Item "app-v2.js" $bundle
+          Get-ChildItem -Path $PWD -File -Filter "app-v*.html" | Copy-Item -Destination $bundle
+          Copy-Item "data" (Join-Path $bundle "data") -Recurse
+          Copy-Item "src" (Join-Path $bundle "src") -Recurse
+          Copy-Item "LICENSE.md" $bundle
+
+          $offline = Join-Path $bundle "_offline"
+          $vendor = Join-Path $offline "vendor"
+          New-Item -ItemType Directory -Force -Path $vendor | Out-Null
+
+          Copy-Item "windows-offline\node_modules\xlsx\dist\xlsx.full.min.js" (Join-Path $vendor "xlsx.full.min.js")
+          Copy-Item "windows-offline\node_modules\exceljs\dist\exceljs.min.js" (Join-Path $vendor "exceljs.min.js")
+          Copy-Item "windows-offline\offline\google-fonts.css" (Join-Path $offline "google-fonts.css")
+          Copy-Item "windows-offline\offline\cc-badge.svg" (Join-Path $offline "cc-badge.svg")
+
+      - name: Verify offline bundle
+        working-directory: windows-offline
+        shell: pwsh
+        run: npm run verify
+
+      - name: Build Setup and Portable EXE
+        working-directory: windows-offline
+        shell: pwsh
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run dist
+
+      - name: Generate SHA256 checksums
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem "windows-offline\dist\*.exe"
+          $lines = foreach ($file in $files) {
+            $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash
+            "$hash  $($file.Name)"
+          }
+          $lines | Set-Content "windows-offline\dist\SHA256SUMS.txt"
+          Get-Content "windows-offline\dist\SHA256SUMS.txt"
+
+      - name: Upload Windows programs
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCI-Secundaria-Aprende-Windows-r37
+          path: |
+            windows-offline/dist/*.exe
+            windows-offline/dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30

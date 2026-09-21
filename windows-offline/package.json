@@ -1,0 +1,57 @@
+{
+  "name": "pci-secundaria-aprende-windows",
+  "version": "0.37.0",
+  "private": true,
+  "description": "Version Windows offline de PCI Secundaria Aprende r37",
+  "main": "main.cjs",
+  "scripts": {
+    "verify": "node verify-offline.cjs",
+    "dist": "electron-builder --win nsis portable --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.4.3",
+    "electron-builder": "26.16.1",
+    "exceljs": "4.4.0",
+    "xlsx": "0.18.5"
+  },
+  "build": {
+    "appId": "ar.edu.pci.secundariaaprende",
+    "productName": "PCI Secundaria Aprende",
+    "asar": true,
+    "files": [
+      "main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "app-bundle",
+        "to": "app"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "PCI-Secundaria-Aprende-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "PCI-Secundaria-Aprende-Portable-${version}-${arch}.${ext}"
+    }
+  }
+}
