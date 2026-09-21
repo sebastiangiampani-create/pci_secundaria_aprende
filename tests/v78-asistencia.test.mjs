@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import test from 'node:test';
 
-async function attendanceHarness(){
+async function attendanceHarness(options={}){
   const source=await readFile(new URL('../src/v78-asistencia.js',import.meta.url),'utf8');
   const state={institutional:{}};
   const head={appendChild(){}};
@@ -16,6 +16,15 @@ async function attendanceHarness(){
     querySelectorAll(){return []}
   };
   const window={addEventListener(){},scrollTo(){}};
+  if(options.commissions){
+    window.PCIStudentsCommissionsV72={
+      commissionDefs(){return options.commissions.defs||[]},
+      studentsFor(key){return options.commissions.students?.[key]||[]}
+    };
+  }
+  if(options.periods){
+    window.PCIRegularityV79={periodsFor(){return options.periods}};
+  }
   const context={
     console,document,Math,Date,state,window,
     save(){},toast(){},setTimeout(){return 0},clearTimeout(){}
@@ -97,4 +106,54 @@ test('Asistencia se carga en Inicio y ya no forma parte de Gestión',async()=>{
   assert.doesNotMatch(attendance,/v48InstitutionalContent/);
   assert.doesNotMatch(management,/key:'asistencia'/);
   assert.match(loader,/'src\/v78-asistencia\.js'/);
+});
+
+
+test('distingue instalación vacía, comisión vacía y comisión con estudiantes',async()=>{
+  const defs=[
+    {key:'eco|||1|||A',course:'1.º A',orientation:'Economía'},
+    {key:'eco|||1|||B',course:'1.º B',orientation:'Economía'}
+  ];
+  const installationEmpty=await attendanceHarness({commissions:{
+    defs,
+    students:{'eco|||1|||A':[],'eco|||1|||B':[]}
+  }});
+  assert.equal(installationEmpty.api.commissionState('eco|||1|||A').state,'installation-empty');
+
+  const mixed=await attendanceHarness({commissions:{
+    defs,
+    students:{
+      'eco|||1|||A':[],
+      'eco|||1|||B':[{dni:'11111111',lastName:'Gómez',firstName:'Luis'}]
+    }
+  }});
+  assert.equal(mixed.api.commissionState('eco|||1|||A').state,'commission-empty');
+  assert.equal(mixed.api.commissionState('eco|||1|||B').state,'loaded');
+});
+
+test('reporte individual suma justificadas e injustificadas y conserva historial',async()=>{
+  const defs=[{key:'eco|||1|||A',course:'1.º A',orientation:'Economía'}];
+  const {api}=await attendanceHarness({commissions:{
+    defs,
+    students:{'eco|||1|||A':[{dni:'12345678',lastName:'Pérez',firstName:'Ana'}]}
+  },periods:[
+    {key:'B1',label:'1.º bimestre',start:'2026-03-01',end:'2026-05-31'},
+    {key:'B2',label:'2.º bimestre',start:'2026-06-01',end:'2026-07-31'}
+  ]});
+  api.addRecord(entry('AUSENTE',{commissionKey:'eco|||1|||A',date:'2026-03-20',justified:true}));
+  api.addRecord(entry('TARDE',{commissionKey:'eco|||1|||A',date:'2026-06-10'}));
+  const report=api.studentReport('12345678',2026);
+  assert.equal(report.justified,1);
+  assert.equal(report.unjustified,0.5);
+  assert.equal(report.history.length,2);
+  assert.equal(report.periods[1].value,0.5);
+  assert.equal(report.status,'Regular');
+});
+
+test('Asistencia ofrece registro diario, estado de comisión y reporte por estudiante',async()=>{
+  const source=await readFile(new URL('../src/v78-asistencia.js',import.meta.url),'utf8');
+  assert.match(source,/Registro diario/);
+  assert.match(source,/Reporte por estudiante/);
+  assert.match(source,/Esta comisión no tiene estudiantes cargados/);
+  assert.match(source,/No hay estudiantes cargados en esta copia/);
 });
