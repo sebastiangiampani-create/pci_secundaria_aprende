@@ -7,7 +7,7 @@ test('la interfaz de ofrecimiento docente anual ya no se renderiza',async()=>{
   assert.doesNotMatch(source,/Carga y ofrecimiento docente · anual/);
   assert.doesNotMatch(source,/data-v65-pct/);
   assert.doesNotMatch(source,/Usar mínimo/);
-  assert.match(source,/if\(section\)section\.remove\(\)/);
+  assert.match(source,/v65AnnualOffer.*remove\(\)/s);
 });
 
 test('el API interno para Horarios se conserva',async()=>{
