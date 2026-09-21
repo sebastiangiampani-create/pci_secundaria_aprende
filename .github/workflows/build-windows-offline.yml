@@ -8,6 +8,8 @@ on:
       - "windows-offline/**"
       - "src/v78-asistencia.js"
       - "src/v79-regularidad.js"
+      - "src/v82-attendance-reports.js"
+      - "tests/v82-attendance-reports.test.mjs"
       - "tests/v78-asistencia.test.mjs"
       - ".github/workflows/build-windows-offline.yml"
 
@@ -72,7 +74,8 @@ jobs:
         working-directory: windows-offline
         shell: pwsh
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
         run: npm run dist
 
       - name: Generate SHA256 checksums
