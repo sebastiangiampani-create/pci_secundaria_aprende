@@ -6,6 +6,8 @@
   const grid=()=>window.PCIScheduleConfigV51||null;
   const offer=()=>window.PCIAnnualOfferV65||null;
   let lastCheck=null,timer=null,observer=null,solving=false,analyzing=false,generationProgress=null;
+  function setText(el,value){if(el&&el.textContent!==value)el.textContent=value}
+  function setDisabled(el,value){const next=!!value;if(el&&el.disabled!==next)el.disabled=next}
 
   const slot=(d,p)=>`${d}:${p}`;
   const days=()=>grid()?.days?.()||[['mon','Lunes'],['tue','Martes'],['wed','Miércoles'],['thu','Jueves'],['fri','Viernes']];
@@ -287,16 +289,19 @@
     const gen=section.querySelector('[data-v65-generate]');
     const check=section.querySelector('[data-v65-check]');
     const accept=section.querySelector('[data-v65-accept]');
-    if(check){check.disabled=solving||analyzing;check.textContent=analyzing?'Analizando…':'Analizar viabilidad'}
+    if(check){
+      setDisabled(check,solving||analyzing);
+      setText(check,analyzing?'Analizando…':'Analizar viabilidad');
+    }
     if(gen){
-      gen.disabled=solving||analyzing;
-      gen.textContent=solving
+      setDisabled(gen,solving||analyzing);
+      setText(gen,solving
         ?(generationProgress?.phase==='solve'
           ?`Generando… ${Math.min(100,Math.round((generationProgress.attempt||0)/(generationProgress.maxAttempts||1400)*100))}%`
           :'Preparando horario…')
-        :'Generar borrador automático';
+        :'Generar borrador automático');
     }
-    if(accept)accept.disabled=solving||analyzing;
+    if(accept)setDisabled(accept,solving||analyzing);
   }
 
   async function analyze(){
@@ -394,9 +399,9 @@
     const p=section.querySelector('h2 + p');
     const copy='Genera una única grilla para toda la escuela respetando jornada, docentes, disponibilidad, preferencias, reuniones de equipo y trabajo institucional. El horario personal de cada docente conserva exactamente las mismas posiciones en ambos cuatrimestres.';
     if(p&&p.textContent!==copy)p.textContent=copy;
-    const gen=section.querySelector('[data-v65-generate]');if(gen&&!solving)gen.textContent='Generar borrador automático';
-    const check=section.querySelector('[data-v65-check]');if(check&&!analyzing)check.textContent='Analizar viabilidad';
-    const accept=section.querySelector('[data-v65-accept]');if(accept)accept.textContent='Marcar como vigente';
+    const gen=section.querySelector('[data-v65-generate]');if(gen&&!solving)setText(gen,'Generar borrador automático');
+    const check=section.querySelector('[data-v65-check]');if(check&&!analyzing)setText(check,'Analizar viabilidad');
+    const accept=section.querySelector('[data-v65-accept]');if(accept)setText(accept,'Marcar como vigente');
     const actions=section.querySelector('.v65-actions');
     let report=$('v81ScheduleCheck');
     if(lastCheck){
