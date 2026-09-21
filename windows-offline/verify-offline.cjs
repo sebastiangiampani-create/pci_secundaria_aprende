@@ -41,3 +41,9 @@ if (!safe.includes('20260920-horarios-estables-r37')) {
 }
 
 console.log('Bundle offline r37 verificado.');
+
+const branding=fs.readFileSync(path.join(root,'_offline','branding-runtime.js'),'utf8');
+if(!branding.includes('installHeaderLogo')||!branding.includes('pciOfflineInstitutionalFooter')){
+  console.error('El branding offline no inserta encabezado y pie institucional.');
+  process.exit(1);
+}
