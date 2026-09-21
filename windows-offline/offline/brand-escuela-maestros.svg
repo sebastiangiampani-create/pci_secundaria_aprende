@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="130" viewBox="0 0 640 130">
+  <rect width="640" height="130" fill="white"/>
+  <text x="24" y="80" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700" fill="#12395c">escuela de</text>
+  <text x="305" y="82" font-family="Segoe Script, Segoe UI, cursive" font-size="64" font-style="italic" font-weight="600" fill="#12395c">maestros</text>
+  <path d="M570 93 l12 0 M576 87 l0 12 M586 91 l8 5 M586 86 l7 -5" stroke="#0d6f73" stroke-width="3" stroke-linecap="round"/>
+</svg>
