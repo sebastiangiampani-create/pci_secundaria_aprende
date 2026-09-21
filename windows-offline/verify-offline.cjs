@@ -19,7 +19,12 @@ const required = [
   '_offline/vendor/xlsx.full.min.js',
   '_offline/vendor/exceljs.min.js',
   '_offline/google-fonts.css',
-  '_offline/cc-badge.svg'
+  '_offline/cc-badge.svg',
+  '_offline/brand-escuela-maestros.svg',
+  '_offline/brand-ministerio.svg',
+  '_offline/splash.html',
+  '_offline/branding-runtime.js',
+  'src/v82-attendance-reports.js'
 ];
 
 for (const file of required) {
