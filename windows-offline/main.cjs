@@ -215,7 +215,37 @@ function buildMenu(win) {
   ]);
 }
 
+function createSplash() {
+  const splash = new BrowserWindow({
+    width: 760,
+    height: 520,
+    frame: false,
+    transparent: false,
+    resizable: false,
+    show: false,
+    center: true,
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true
+    }
+  });
+  splash.once('ready-to-show', () => splash.show());
+  splash.loadURL('pci://app/_offline/splash.html');
+  return splash;
+}
+
+function injectOfflineBranding(win) {
+  try {
+    const source = fs.readFileSync(path.join(appRoot(), '_offline', 'branding-runtime.js'), 'utf8');
+    win.webContents.executeJavaScript(source, true).catch(() => {});
+  } catch {}
+}
+
 function createWindow() {
+  const splash = createSplash();
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -223,6 +253,8 @@ function createWindow() {
     minHeight: 700,
     title: APP_TITLE,
     autoHideMenuBar: false,
+    show: false,
+    backgroundColor: '#ffffff',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -243,6 +275,12 @@ function createWindow() {
       event.preventDefault();
       if (/^https?:/i.test(url)) shell.openExternal(url);
     }
+  });
+
+  win.webContents.on('did-finish-load', () => injectOfflineBranding(win));
+  win.once('ready-to-show', () => {
+    win.show();
+    if (!splash.isDestroyed()) splash.close();
   });
 
   win.loadURL('pci://app/index.html');
