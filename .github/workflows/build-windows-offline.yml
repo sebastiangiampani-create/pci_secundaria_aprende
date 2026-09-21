@@ -64,6 +64,10 @@ jobs:
           Copy-Item "windows-offline\node_modules\exceljs\dist\exceljs.min.js" (Join-Path $vendor "exceljs.min.js")
           Copy-Item "windows-offline\offline\google-fonts.css" (Join-Path $offline "google-fonts.css")
           Copy-Item "windows-offline\offline\cc-badge.svg" (Join-Path $offline "cc-badge.svg")
+          Copy-Item "windows-offline\offline\brand-escuela-maestros.svg" (Join-Path $offline "brand-escuela-maestros.svg")
+          Copy-Item "windows-offline\offline\brand-ministerio.svg" (Join-Path $offline "brand-ministerio.svg")
+          Copy-Item "windows-offline\offline\splash.html" (Join-Path $offline "splash.html")
+          Copy-Item "windows-offline\offline\branding-runtime.js" (Join-Path $offline "branding-runtime.js")
 
       - name: Verify offline bundle
         working-directory: windows-offline
