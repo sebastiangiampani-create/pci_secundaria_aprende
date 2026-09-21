@@ -21,9 +21,9 @@
     if(key==='ANNUAL')return{key:'ANNUAL',label:'Ciclo lectivo completo',start:String(yr)+'-01-01',end:String(yr)+'-12-31'};
     return periodsFor(yr).find(p=>p.key===key)||{key:'ANNUAL',label:'Ciclo lectivo completo',start:String(yr)+'-01-01',end:String(yr)+'-12-31'};
   }
-  function studentRecords(dni,y,key){
+  function studentRecords(dni,y,key,commissionKey=''){
     const range=rangeFor(y,key);
-    return records().filter(r=>String(r?.dni||'')===String(dni)&&String(r?.date||'')>=range.start&&String(r?.date||'')<=range.end);
+    return records().filter(r=>String(r?.dni||'')===String(dni)&&(!commissionKey||String(r?.commissionKey||'')===String(commissionKey))&&String(r?.date||'')>=range.start&&String(r?.date||'')<=range.end);
   }
   function statusFor(dni,y,key){
     if(key==='ANNUAL'){
@@ -40,7 +40,7 @@
     const range=rangeFor(y,pKey);
     const rows=studentsFor(key).map(student=>{
       const dni=String(student?.dni||'');
-      const history=studentRecords(dni,y,pKey);
+      const history=studentRecords(dni,y,pKey,key);
       const status=statusFor(dni,y,pKey);
       const tardies=history.filter(r=>r.type==='TARDE').length;
       const absences=history.filter(r=>r.type!=='TARDE').length;
@@ -66,6 +66,7 @@
     let b=tabs.querySelector('[data-v83-course-tab]');
     if(!b){b=document.createElement('button');b.type='button';b.dataset.v83CourseTab='1';b.textContent='Reporte por curso';tabs.appendChild(b)}
     b.classList.toggle('active',active);
+    if(active)tabs.querySelectorAll('[data-v78-tab]').forEach(x=>x.classList.remove('active'));
     return b;
   }
   function hideBase(root){
@@ -93,7 +94,10 @@
     const ys=years();if(!ys.includes(Number(year)))year=ys[0]||nowYear();
     const ps=periodsFor(year);if(periodKey!=='ANNUAL'&&!ps.some(p=>p.key===periodKey))periodKey='ANNUAL';
     let host=root.querySelector('.v83-course-root');if(!host){host=document.createElement('div');host.className='v83-course-root';root.appendChild(host)}
-    host.hidden=false;host.innerHTML=reportHtml(courseReport(commission,year,periodKey),ds,ys,ps);
+    host.hidden=false;
+    const report=courseReport(commission,year,periodKey);
+    const signature=JSON.stringify({commission,year,periodKey,rows:report.rows.map(r=>[r.dni,r.tardies,r.absences,r.justified,r.unjustified,r.status])});
+    if(host.dataset.signature!==signature){host.dataset.signature=signature;host.innerHTML=reportHtml(report,ds,ys,ps)}
     host.querySelector('[data-v83-commission]')?.addEventListener('change',e=>{commission=e.target.value;renderCourse(root)});
     host.querySelector('[data-v83-year]')?.addEventListener('change',e=>{year=Number(e.target.value);periodKey='ANNUAL';renderCourse(root)});
     host.querySelector('[data-v83-period]')?.addEventListener('change',e=>{periodKey=e.target.value;renderCourse(root)});
