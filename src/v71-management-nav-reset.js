@@ -32,7 +32,7 @@
       {key:'comisiones',label:'Comisiones y estudiantes',find:()=>$('v72StudentsCommissions')||byHeading(/Comisiones y estudiantes|Listados generados/i)},
       {key:'equipos',label:'Equipos y reuniones',find:()=>byHeading(/Equipos y reuniones|equipo|planificaci[oó]n|carga docente/i)},
       {key:'disponibilidad',label:'Disponibilidad',find:()=>$('v60Availability')||byHeading(/Disponibilidad y preferencias/i)},
-      {key:'horario',label:'Horarios',find:()=>$('v68AnnualScheduler')||byHeading(/Vistas del horario|grilla|horario/i)},
+      {key:'horario',label:'Horarios',find:()=>$('v65AnnualScheduler')||byHeading(/Vistas del horario|grilla|horario/i)},
       {key:'excel',label:'Carga Excel',find:()=>$('v71SimpleAssignmentExcel')},
       {key:'respaldo',label:'Respaldo',find:()=>$('v68InstitutionalExport')||byHeading(/Descargar e imprimir|respaldo/i)}
     ];
