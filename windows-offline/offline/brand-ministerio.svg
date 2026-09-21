@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="180" viewBox="0 0 940 180">
+  <rect width="940" height="180" rx="6" fill="#103d5c"/>
+  <text x="34" y="106" font-family="Arial, Helvetica, sans-serif" font-size="54" font-weight="700" fill="white">Ministerio de Educación</text>
+  <line x1="650" y1="48" x2="650" y2="134" stroke="white" stroke-width="4"/>
+  <circle cx="710" cy="91" r="31" fill="none" stroke="white" stroke-width="4"/>
+  <path d="M692 98 Q710 70 728 98 M691 83 Q710 104 729 83" fill="none" stroke="white" stroke-width="3"/>
+  <text x="756" y="83" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="white">Buenos</text>
+  <text x="756" y="108" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="white">Aires Ciudad</text>
+</svg>
