@@ -69,6 +69,14 @@ jobs:
           Copy-Item "windows-offline\offline\splash.html" (Join-Path $offline "splash.html")
           Copy-Item "windows-offline\offline\branding-runtime.js" (Join-Path $offline "branding-runtime.js")
 
+          # Inject offline branding into the final HTML used by the packaged app only.
+          $corePath = Join-Path $bundle "app-core.html"
+          $coreHtml = Get-Content $corePath -Raw
+          if ($coreHtml -notmatch "_offline/branding-runtime.js") {
+            $coreHtml = $coreHtml -replace "</body>", '<script src="_offline/branding-runtime.js"></script></body>'
+            Set-Content -Path $corePath -Value $coreHtml -Encoding utf8
+          }
+
       - name: Verify offline bundle
         working-directory: windows-offline
         shell: pwsh
