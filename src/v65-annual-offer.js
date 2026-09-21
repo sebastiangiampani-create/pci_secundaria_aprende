@@ -40,11 +40,13 @@
   }
 
   function render(){
-    const section=$id('v65AnnualOffer');
-    if(section)section.remove();
+    $id('v56OfferModel')?.remove();
+    $id('v65AnnualOffer')?.remove();
+    document.querySelectorAll('.v58-offer-conflict').forEach(box=>box.remove());
     window.PCIOfferModelV56={offer:(tid)=>offer(tid),teamHours,syntheticOutsideRows,render,__v65Annual:true,__derivedFromManagement:true};
   }
   function start(){render()}
+  render();
   window.addEventListener('pci-app-ready',()=>setTimeout(start,700));
   document.addEventListener('click',e=>{if(e.target.closest('#openInstitutionalGeneral,#openInstitutional,[data-v71n-open]'))setTimeout(start,280)},true);
   setTimeout(start,900);
