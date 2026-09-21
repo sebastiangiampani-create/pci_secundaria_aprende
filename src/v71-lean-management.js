@@ -284,7 +284,7 @@
       setTimeout(()=>{
         try{window.PCISimpleAssignmentExcelV71?.render?.()}catch(e){console.warn('V71P excel',e)}
         try{window.PCIAvailabilityPreferencesV60?.render?.()}catch(e){console.warn('V71P availability',e)}
-        try{window.PCIAnnualSchedulerV68?.render?.()}catch(e){console.warn('V71P scheduler',e)}
+        try{window.PCIAnnualSchedulerV65?.render?.();setTimeout(()=>window.PCIScheduleStableV81?.decorate?.(),0)}catch(e){console.warn('V71P scheduler',e)}
         try{window.PCIManagementNavResetV71?.renderNav?.()}catch{}
         try{window.PCIManagementHomeV73?.refresh?.()}catch(e){console.warn('V73 home refresh',e)}
       },80);
