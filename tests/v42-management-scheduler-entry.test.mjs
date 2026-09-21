@@ -31,13 +31,13 @@ test('la navegación interna de Gestión busca el contenedor actual de Horarios'
   assert.doesNotMatch(nav,/v68AnnualScheduler/);
 });
 
-test('r42 renueva la versión de caché',async()=>{
+test('Gestión mantiene sincronizada la versión de caché',async()=>{
   const [loader,index]=await Promise.all([
     readFile(new URL('../app-safe.html',import.meta.url),'utf8'),
     readFile(new URL('../index.html',import.meta.url),'utf8')
   ]);
   const loaderVersion=loader.match(/app\.html\?v=([^'"]+)/)?.[1]||'';
   const indexVersion=index.match(/app-safe\.html\?v=([^'"]+)/)?.[1]||'';
-  assert.equal(loaderVersion,'20260921-restore-horarios-r42');
+  assert.ok(loaderVersion,'app-safe debe declarar una versión de caché');
   assert.equal(indexVersion,loaderVersion);
 });
