@@ -93,6 +93,28 @@
     return [...ids].map(id=>teachers[id]).filter(Boolean);
   }
 
+  function normalizeCriteriaModel(e){
+    e.rows=e.rows||{};
+    let criteria=Array.isArray(e.criteria)?e.criteria.map(x=>String(x??'')):['','','',''];
+    while(criteria.length<4)criteria.push('');
+
+    // Migración del modelo anterior: siempre reservaba un quinto criterio vacío.
+    // Si ya tenía contenido, se conserva; si estaba vacío, vuelve al mínimo real de cuatro.
+    if(Number(e.criteriaDynamicVersion||0)<2){
+      if(criteria.length===5&&!String(criteria[4]||'').trim())criteria=criteria.slice(0,4);
+      e.criteriaDynamicVersion=2;
+    }
+
+    e.criteria=criteria;
+    for(const row of Object.values(e.rows)){
+      if(!row||typeof row!=='object')continue;
+      row.criteria=Array.isArray(row.criteria)?row.criteria.slice():[];
+      while(row.criteria.length<e.criteria.length)row.criteria.push('');
+      if(row.criteria.length>e.criteria.length)row.criteria=row.criteria.slice(0,e.criteria.length);
+    }
+    return e;
+  }
+
   function ensureEval(ctx){
     const plans=root().grading.plans;
     let e=plans[ctx.key];
@@ -108,25 +130,56 @@
         course:ctx.commission.course,
         planNumber:ctx.planNumber,
         planName:planName(ctx),
-        criteria:['','','','',''],
+        criteria:['','','',''],
+        criteriaDynamicVersion:2,
         rows:{}
       };
     }
     e.planName=planName(ctx)||e.planName||'';
-    e.criteria=Array.isArray(e.criteria)?e.criteria.slice(0,5):['','','','',''];
-    while(e.criteria.length<5)e.criteria.push('');
-    e.rows=e.rows||{};
-    return e;
+    return normalizeCriteriaModel(e);
   }
 
   function criteriaReady(e){return e.criteria.slice(0,4).every(x=>String(x||'').trim())}
 
+  function addCriterion(e){
+    normalizeCriteriaModel(e);
+    e.criteria.push('');
+    for(const row of Object.values(e.rows||{})){
+      if(!row||typeof row!=='object')continue;
+      row.criteria=Array.isArray(row.criteria)?row.criteria:[];
+      row.criteria.push('');
+    }
+    return e.criteria.length;
+  }
+
+  function removeCriterion(e,index){
+    normalizeCriteriaModel(e);
+    const i=Number(index);
+    if(!Number.isInteger(i)||i<4||i>=e.criteria.length)return false;
+    e.criteria.splice(i,1);
+    for(const row of Object.values(e.rows||{})){
+      if(!row||typeof row!=='object'||!Array.isArray(row.criteria))continue;
+      row.criteria.splice(i,1);
+    }
+    return true;
+  }
+
+  function syncCriteriaInputs(host,e){
+    host?.querySelectorAll?.('[data-v76-criterion]')?.forEach(x=>{
+      const i=Number(x.dataset.v76Criterion);
+      if(Number.isInteger(i)&&i>=0&&i<e.criteria.length)e.criteria[i]=x.value.trim();
+    });
+  }
+
   function rowFor(e,s){
-    if(!e.rows[s.dni])e.rows[s.dni]={dni:s.dni,status:'no_iniciado',stage:'',criteria:['','','','',''],final:'',completedAt:'',weight:'',weighted:''};
+    normalizeCriteriaModel(e);
+    if(!e.rows[s.dni])e.rows[s.dni]={dni:s.dni,status:'no_iniciado',stage:'',criteria:Array(e.criteria.length).fill(''),final:'',completedAt:'',weight:'',weighted:''};
     const r=e.rows[s.dni];
     r.status=r.status||((r.final||r.stage)?'en_proceso':'no_iniciado');
     r.completedAt=String(r.completedAt||'');
-    r.criteria=Array.isArray(r.criteria)?r.criteria.slice(0,5):['','','','',''];while(r.criteria.length<5)r.criteria.push('');
+    r.criteria=Array.isArray(r.criteria)?r.criteria.slice():[];
+    while(r.criteria.length<e.criteria.length)r.criteria.push('');
+    if(r.criteria.length>e.criteria.length)r.criteria=r.criteria.slice(0,e.criteria.length);
     return r;
   }
 
@@ -294,9 +347,10 @@
 
       <section class="card v76-criteria">
         <div class="eyebrow">Criterios colegiados</div>
-        <h2>Definir 4 criterios obligatorios y un 5.º opcional</h2>
-        <p>Los criterios pertenecen a este plan y a esta comisión. Todo el equipo docente trabaja sobre los mismos criterios: cuatro son obligatorios y el quinto es opcional.</p>
-        <div class="v76-criteria-grid">${e.criteria.map((c,i)=>`<label><span>Criterio ${i+1}${i===4?' · opcional':''}</span><textarea data-v76-criterion="${i}" placeholder="Escribí el criterio acordado por el equipo docente">${esc(c)}</textarea></label>`).join('')}</div>
+        <h2>Definir un mínimo de 4 criterios</h2>
+        <p>Los criterios pertenecen a este plan y a esta comisión. Los primeros cuatro son obligatorios y podés agregar todos los criterios adicionales que necesite el equipo docente.</p>
+        <div class="v76-criteria-grid">${e.criteria.map((c,i)=>`<label class="v76-criterion-card"><span class="v76-criterion-head"><b>Criterio ${i+1}${i<4?' · obligatorio':' · adicional'}</b>${i>=4?`<button type="button" data-v76-remove-criterion="${i}" aria-label="Quitar criterio ${i+1}">Quitar</button>`:''}</span><textarea data-v76-criterion="${i}" placeholder="Escribí el criterio acordado por el equipo docente">${esc(c)}</textarea></label>`).join('')}</div>
+        <div class="v76-criteria-add"><button type="button" class="btn soft" data-v76-add-criterion>+ Agregar criterio</button><small>Mínimo obligatorio: 4 criterios. Podés agregar más sin un máximo fijo.</small></div>
         <div class="v76-criteria-actions"><button type="button" class="btn primary" data-v76-save-criteria>Guardar criterios</button><span class="${ready?'ok':'pending'}">${ready?'Criterios completos':'Faltan criterios'}</span></div>
       </section>
 
@@ -314,9 +368,22 @@
       </section>`;
     host.querySelector('[data-v76-back]').onclick=renderHome;
     host.querySelector('[data-v76-save-criteria]').onclick=()=>{
-      host.querySelectorAll('[data-v76-criterion]').forEach(x=>e.criteria[Number(x.dataset.v76Criterion)]=x.value.trim());
+      syncCriteriaInputs(host,e);
       saveAll();renderPlan();toast(criteriaReady(e)?'Criterios guardados. Ya podés calificar.':'Guardado. Todavía faltan criterios.',!criteriaReady(e));
     };
+    host.querySelector('[data-v76-add-criterion]')?.addEventListener('click',()=>{
+      syncCriteriaInputs(host,e);
+      addCriterion(e);
+      saveAll();
+      renderPlan();
+    });
+    host.querySelectorAll('[data-v76-remove-criterion]').forEach(b=>b.addEventListener('click',()=>{
+      syncCriteriaInputs(host,e);
+      const index=Number(b.dataset.v76RemoveCriterion);
+      const criterionHasData=String(e.criteria[index]||'').trim()||Object.values(e.rows||{}).some(r=>String(r?.criteria?.[index]||'').trim());
+      if(criterionHasData&&typeof window.confirm==='function'&&!window.confirm('Este criterio tiene información cargada. ¿Querés quitarlo igualmente?'))return;
+      if(removeCriterion(e,index)){saveAll();renderPlan()}
+    }));
     host.querySelector('[data-v76-download]').onclick=()=>downloadExcel(ctx,e,students);
     host.querySelector('[data-v76-import]').onchange=ev=>{const f=ev.target.files?.[0];if(f)importExcel(ctx,e,students,f);ev.target.value=''};
     bindSheet(e,students);
@@ -325,7 +392,7 @@
   function sheetHtml(e,students){
     return `<div class="v76-sheet-wrap"><table class="v76-sheet"><thead><tr>
       <th>DNI</th><th>Estudiante</th><th>Estado del plan</th><th>Etapa alcanzada</th>
-      ${e.criteria.map((c,i)=>c?`<th title="${esc(c)}">${esc(c)}${i===4?' (opcional)':''}</th>`:'').join('')}
+      ${e.criteria.map(c=>c?`<th title="${esc(c)}">${esc(c)}</th>`:'').join('')}
       <th>Calificación final</th><th>Fecha de finalización</th>
     </tr></thead><tbody>${students.map(s=>{const r=rowFor(e,s);return`<tr data-dni="${esc(s.dni)}">
       <td>${esc(s.dni)}</td><td><strong>${esc(s.lastName||'')} ${esc(s.firstName||'')}</strong></td>
@@ -432,7 +499,7 @@
     .v76-topbar{display:flex;justify-content:flex-start;margin:0 0 12px}.v76-empty-state{display:grid;gap:5px;margin-top:14px;padding:22px;border:1px dashed var(--line);border-radius:16px;background:#fff;color:var(--muted)}.v76-empty-state strong{color:var(--ink)}
     #grading .v76-hero{margin:-22px -24px 16px;padding:28px 24px;border-radius:0 0 28px 28px;background:linear-gradient(135deg,#edf3f8,#f7fbfa)}#grading .v76-hero h1{margin:4px 0 6px;font-size:clamp(1.8rem,3vw,3rem)}#grading .v76-hero p{margin:0;color:var(--muted)}
     .v76-browser{margin:12px 0 18px;padding:16px;border:1px solid var(--line);border-radius:18px;background:#fff}.v76-browser-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.v76-browser-head h2{margin:4px 0 0}.v76-filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-top:12px}.v76-filters label{display:grid;gap:5px}.v76-filters span{font-size:.56rem;font-weight:900;color:var(--muted)}.v76-filters select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}.v76-summary{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}.v76-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--band);font-size:.6rem}.v76-course-stack{display:grid;gap:18px}.v76-course-block{padding:16px;border:1px solid var(--line);border-radius:20px;background:#f9fbfc}.v76-course-head{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-bottom:12px}.v76-course-head small{display:block;color:var(--muted);font-size:.55rem}.v76-course-head h2{margin:3px 0 0}.v76-course-head>span{padding:6px 9px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:.54rem;font-weight:900}.v76-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.v76-card{padding:18px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:var(--shadow);min-width:0}.v76-card-head{display:flex;justify-content:space-between;gap:8px;font-size:.56rem;color:var(--muted)}.v76-card h3{margin:8px 0 4px}.v76-card p,.v76-card>small{color:var(--muted);font-size:.62rem;line-height:1.4}.v76-teachers{display:block;min-height:2.5em;margin-top:5px}.v76-plan-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.v76-plan-buttons button{min-height:88px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--band);text-align:left;color:var(--ink);overflow:hidden}.v76-plan-buttons span{display:block;font-weight:900;font-size:.72rem}.v76-plan-buttons strong{display:-webkit-box;margin:5px 0 6px;font-size:.62rem;line-height:1.25;font-weight:700;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}.v76-plan-buttons small{display:block;font-size:.52rem;color:var(--muted)}.v76-ready{margin-top:9px;font-size:.55rem;color:var(--muted)}
-    .v76-plan-top{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}.v76-plan-top h1{margin:4px 0}.v76-plan-name{margin:2px 0 5px;font-size:1rem;color:var(--mint-dark)}.v76-plan-top p{margin:0;color:var(--muted);font-size:.68rem}.v76-criteria,.v76-sheet-section{padding:18px;margin-top:14px}.v76-criteria h2,.v76-sheet-section h2{margin:4px 0}.v76-criteria>p,.v76-sheet-section p{margin:0;color:var(--muted);font-size:.68rem}.v76-criteria-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.v76-criteria-grid label{display:grid;gap:4px}.v76-criteria-grid span{font-size:.6rem;font-weight:900}.v76-criteria-grid textarea{min-height:82px;padding:9px;border:1px solid var(--line);border-radius:10px}.v76-criteria-actions{display:flex;align-items:center;gap:8px;margin-top:10px}.v76-criteria-actions .ok{color:var(--ok);font-size:.58rem;font-weight:900}.v76-criteria-actions .pending{color:#8a6414;font-size:.58rem;font-weight:900}
+    .v76-plan-top{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}.v76-plan-top h1{margin:4px 0}.v76-plan-name{margin:2px 0 5px;font-size:1rem;color:var(--mint-dark)}.v76-plan-top p{margin:0;color:var(--muted);font-size:.68rem}.v76-criteria,.v76-sheet-section{padding:18px;margin-top:14px}.v76-criteria h2,.v76-sheet-section h2{margin:4px 0}.v76-criteria>p,.v76-sheet-section p{margin:0;color:var(--muted);font-size:.68rem}.v76-criteria-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.v76-criterion-card{display:grid;gap:4px}.v76-criterion-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.6rem;font-weight:900}.v76-criterion-head button{border:0;background:transparent;color:var(--danger);font-size:.52rem;font-weight:900;padding:3px 5px}.v76-criteria-grid textarea{min-height:82px;padding:9px;border:1px solid var(--line);border-radius:10px}.v76-criteria-add{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px}.v76-criteria-add small{color:var(--muted);font-size:.54rem}.v76-criteria-actions{display:flex;align-items:center;gap:8px;margin-top:10px}.v76-criteria-actions .ok{color:var(--ok);font-size:.58rem;font-weight:900}.v76-criteria-actions .pending{color:#8a6414;font-size:.58rem;font-weight:900}
     .v76-dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.v76-dashboard button{padding:13px;border:1px solid var(--line);border-radius:16px;background:#fff;text-align:left;color:var(--ink)}.v76-dashboard strong{display:block;font-size:1.35rem}.v76-dashboard span{display:block;font-weight:900;font-size:.62rem}.v76-dashboard small{display:block;margin-top:3px;color:var(--muted);font-size:.48rem}
     .v76-sheet-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.v76-excel-actions{display:flex;gap:7px;flex-wrap:wrap}.v76-excel-actions label{cursor:pointer}.v76-lock{margin-top:12px;padding:18px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);text-align:center}.v76-sheet-wrap{overflow:auto;margin-top:12px;border:1px solid var(--line);border-radius:14px}.v76-sheet{width:100%;min-width:1400px;border-collapse:collapse;font-size:.6rem}.v76-sheet th{position:sticky;top:0;background:var(--band);z-index:2;text-align:left;max-width:220px}.v76-sheet th,.v76-sheet td{padding:7px;border-bottom:1px solid var(--line);vertical-align:middle}.v76-sheet input,.v76-sheet select{width:100%;min-width:88px;padding:7px;border:1px solid var(--line);border-radius:8px;background:#fff}.v76-sheet td:nth-child(2){min-width:190px}
     @media(max-width:980px){.v76-grid{grid-template-columns:1fr}.v76-filters{grid-template-columns:1fr 1fr}}@media(max-width:760px){.v76-browser-head,.v76-course-head{align-items:flex-start;flex-direction:column}.v76-filters{grid-template-columns:1fr}.v76-course-block{padding:12px}#grading .v76-hero{margin:-18px -12px 14px;padding:20px 14px}.v76-plan-top{flex-direction:column}.v76-criteria-grid{grid-template-columns:1fr}.v76-dashboard{grid-template-columns:1fr 1fr}.v76-sheet-head{flex-direction:column}.v76-excel-actions{width:100%}.v76-excel-actions .btn{flex:1;text-align:center}}
@@ -456,6 +523,7 @@
 
   window.PCIGradingV76={
     openGrading,renderHome,openPlan,allContexts,scopedContexts,setAccessScope,contextsForTeacher,
+    normalizeCriteriaModel,criteriaReady,addCriterion,removeCriterion,
     getAccessScope:()=>({...accessScope})
   };
 })();
