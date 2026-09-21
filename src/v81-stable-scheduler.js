@@ -43,8 +43,7 @@
     for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}
     return (h>>>0).toString(36);
   }
-  function sourceSignature(rowsOverride=null,derive=true){
-    if(derive)teamsApi()?.deriveTeams?.();
+  function sourceSignature(rowsOverride=null){
     const r=root(),rows=Array.isArray(rowsOverride)?rowsOverride:(window.PCIInstitutionalV48?.allImplementationRows?.()||[]);
     const payload={
       assignments:r.assignments,
@@ -120,7 +119,6 @@
   }
 
   function preflight(){
-    teamsApi()?.deriveTeams?.();
     const b=base()?.preflight?.()||{ok:false,issues:['No está disponible el generador anual base.'],warnings:[],rows:[],teams:[],outside:[]};
     const issues=[...(b.issues||[])],warnings=[...(b.warnings||[])],loads=teacherFrontLoads(b.rows||[]);
     for(const [tid,l] of Object.entries(loads)){
@@ -128,7 +126,7 @@
     }
     const built=buildPairs(b);
     if(built.crossRank.length)warnings.push(`${built.crossRank.length} emparejamiento${built.crossRank.length===1?'':'s'} cruzan pares temporales de Fase 1; conviene revisar la estructura curricular.`);
-    return{...b,issues,warnings,ok:!issues.length,v81Pairs:built.pairs,v81CrossRank:built.crossRank,sourceSignature:sourceSignature(b.rows||[],false)};
+    return{...b,issues,warnings,ok:!issues.length,v81Pairs:built.pairs,v81CrossRank:built.crossRank,sourceSignature:sourceSignature(b.rows||[])};
   }
 
   function teamChoices(team,ctx){
