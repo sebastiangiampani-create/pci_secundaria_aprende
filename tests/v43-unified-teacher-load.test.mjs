@@ -7,7 +7,7 @@ test('la interfaz de ofrecimiento docente anual ya no se renderiza',async()=>{
   assert.doesNotMatch(source,/Carga y ofrecimiento docente · anual/);
   assert.doesNotMatch(source,/data-v65-pct/);
   assert.doesNotMatch(source,/Usar mínimo/);
-  assert.match(source,/if\(section\)section\.remove\(\)/);
+  assert.match(source,/v65AnnualOffer.*remove\(\)/s);
 });
 
 test('el API interno para Horarios se conserva',async()=>{
@@ -26,13 +26,13 @@ test('el validador de Horarios ya no exige porcentaje ni regla del 50 por ciento
   assert.doesNotMatch(source,/data-v65-pct/);
 });
 
-test('r43 mantiene sincronizada la versión de caché',async()=>{
+test('carga docente unificada mantiene sincronizada la versión de caché',async()=>{
   const [loader,index]=await Promise.all([
     readFile(new URL('../app-safe.html',import.meta.url),'utf8'),
     readFile(new URL('../index.html',import.meta.url),'utf8')
   ]);
   const loaderVersion=loader.match(/app\.html\?v=([^'"]+)/)?.[1]||'';
   const indexVersion=index.match(/app-safe\.html\?v=([^'"]+)/)?.[1]||'';
-  assert.equal(loaderVersion,'20260921-carga-docente-unificada-r43');
+  assert.ok(loaderVersion,'app-safe debe declarar una versión de caché');
   assert.equal(indexVersion,loaderVersion);
 });

@@ -3,7 +3,7 @@
   const loadsApi=()=>window.PCIDerivedTeacherLoadV52||null;
   const teamsApi=()=>window.PCIAutoAreaCoincidenceV54||null;
   const workApi=()=>window.PCIInstitutionalWorkV53||null;
-  let observer=null,timer=null,rendering=false;
+  let timer=null;
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,Number(n)||0));
@@ -101,23 +101,15 @@
   }
 
   function render(){
-    if(rendering)return;rendering=true;
-    try{
-      const host=$id('v48InstitutionalContent');if(!host||!$id('institutional')?.classList.contains('active'))return;
-      teamsApi()?.deriveTeams?.();patchSchedulerApi();
-      for(const t of teachers()){t.maxTotalHours=null;delete t.extraPct}
-      let section=$id('v56OfferModel');
-      if(!section){section=document.createElement('section');section.id='v56OfferModel';section.className='card v56-section';const before=$id('v51ScheduleConfig')||$id('v49Availability')||$id('v53Scheduler')||$id('v50Scheduler');if(before)host.insertBefore(section,before);else host.appendChild(section)}
-      section.innerHTML=`<div class="eyebrow">Carga y ofrecimiento docente</div><h2>Oferta mínima y porcentaje variable</h2><p>Primero se calcula la carga frente a curso. Las horas fuera de curso —incluida la planificación obligatoria con equipos— pueden representar hasta el 50 % de la carga total ofrecida al docente.</p><div class="v56-note"><strong>Mínimo automático:</strong> horas frente a curso + horas obligatorias fuera de curso. <strong>Rango posible:</strong> desde ese mínimo hasta un máximo en el que las horas fuera de curso representen el 50 % de la carga total. Las 3/4 HC de planificación de equipo forman parte de ese porcentaje: no se suman por afuera. Ejemplo: 5 HC frente a curso + 3 HC de planificación = 8 HC totales; las 3 HC fuera de curso representan el 37,5 %, por lo tanto es una oferta válida.</div>${teachers().length?`<div class="v56-cards">${teachers().map(teacherCard).join('')}</div>`:'<div class="v48-empty">Primero cargá docentes y asignales materias/cursos.</div>'}<h2 style="margin-top:19px">Bloques obligatorios de planificación</h2><p>Los equipos se detectan automáticamente desde las asignaciones de Fase 1. Cada área de Formación General y cada Formación Orientada debe tener un bloque semanal común continuo de 3 o 4 HC dentro de la jornada escolar.</p>${teamCards()}`;
-      section.querySelectorAll('[data-v56-pct]').forEach(sel=>sel.onchange=()=>setPct(sel.dataset.v56Pct,Number(sel.dataset.sem),Number(sel.value)));
-      section.querySelectorAll('[data-v56-team-hours]').forEach(sel=>sel.onchange=()=>setTeamHours(sel.dataset.v56TeamHours,Number(sel.value)));
-    }finally{rendering=false}
+    patchSchedulerApi();
+    const section=$id('v56OfferModel');
+    if(section)section.remove();
   }
 
-  function refresh(){clearTimeout(timer);timer=setTimeout(()=>{patchSchedulerApi();render()},90)}
-  function start(){refresh();const host=$id('v48InstitutionalContent');if(host&&!observer){observer=new MutationObserver(refresh);observer.observe(host,{childList:true,subtree:false})}}
-  window.addEventListener('pci-app-ready',()=>setTimeout(start,320));
+  function refresh(){clearTimeout(timer);timer=setTimeout(render,40)}
+  function start(){render()}
+  window.addEventListener('pci-app-ready',()=>setTimeout(start,120));
   window.addEventListener('pci-schedule-grid-changed',refresh);
-  document.addEventListener('click',e=>{if(e.target.closest('#openInstitutional'))setTimeout(start,230)},true);
+  document.addEventListener('click',e=>{if(e.target.closest('#openInstitutional,#openInstitutionalGeneral,[data-v71n-open]'))setTimeout(start,80)},true);
   window.PCIOfferModelV56={offer,teamHours,syntheticOutsideRows,render};
 })();
