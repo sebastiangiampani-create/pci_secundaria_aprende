@@ -6,6 +6,9 @@ on:
       - windows-offline-r37
     paths:
       - "windows-offline/**"
+      - "src/v78-asistencia.js"
+      - "src/v79-regularidad.js"
+      - "tests/v78-asistencia.test.mjs"
       - ".github/workflows/build-windows-offline.yml"
 
 permissions:
