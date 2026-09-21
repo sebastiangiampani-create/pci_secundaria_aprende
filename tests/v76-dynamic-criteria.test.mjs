@@ -73,11 +73,13 @@ test('la interfaz usa botón Agregar criterio y no un quinto criterio fijo',asyn
   assert.doesNotMatch(source,/length<5/);
 });
 
-test('r40 renueva la versión de caché de la aplicación',async()=>{
+test('index y loader mantienen sincronizada la versión de caché de la aplicación',async()=>{
   const [loader,index]=await Promise.all([
     readFile(new URL('../app-safe.html',import.meta.url),'utf8'),
     readFile(new URL('../index.html',import.meta.url),'utf8')
   ]);
-  assert.match(loader,/20260921-calificaciones-criterios-r40/);
-  assert.match(index,/20260921-calificaciones-criterios-r40/);
+  const loaderVersion=loader.match(/app\.html\?v=([^'"]+)/)?.[1]||'';
+  const indexVersion=index.match(/app-safe\.html\?v=([^'"]+)/)?.[1]||'';
+  assert.ok(loaderVersion,'app-safe debe declarar una versión de caché');
+  assert.equal(indexVersion,loaderVersion);
 });

@@ -5,7 +5,9 @@
   const availability=()=>window.PCIAvailabilityPreferencesV60||window.PCIAvailabilityV49||null;
   const grid=()=>window.PCIScheduleConfigV51||null;
   const offer=()=>window.PCIAnnualOfferV65||null;
-  let lastCheck=null,timer=null,observer=null;
+  let lastCheck=null,timer=null,observer=null,solving=false,analyzing=false,generationProgress=null;
+  function setText(el,value){if(el&&el.textContent!==value)el.textContent=value}
+  function setDisabled(el,value){const next=!!value;if(el&&el.disabled!==next)el.disabled=next}
 
   const slot=(d,p)=>`${d}:${p}`;
   const days=()=>grid()?.days?.()||[['mon','Lunes'],['tue','Martes'],['wed','Miércoles'],['thu','Jueves'],['fri','Viernes']];
@@ -41,9 +43,8 @@
     for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}
     return (h>>>0).toString(36);
   }
-  function sourceSignature(){
-    teamsApi()?.deriveTeams?.();
-    const r=root(),rows=window.PCIInstitutionalV48?.allImplementationRows?.()||[];
+  function sourceSignature(rowsOverride=null){
+    const r=root(),rows=Array.isArray(rowsOverride)?rowsOverride:(window.PCIInstitutionalV48?.allImplementationRows?.()||[]);
     const payload={
       assignments:r.assignments,
       teachers:Object.values(r.teachers||{}).map(t=>({id:t.id,name:t.name||'',offerAnnualPct:t.offerAnnualPct??null,meetingHours:t.meetingHours??null,cargos:t.cargos||[],cargoType:t.cargoType||'',manualHours:t.manualHours||0})).sort((a,b)=>String(a.id).localeCompare(String(b.id))),
@@ -118,7 +119,6 @@
   }
 
   function preflight(){
-    teamsApi()?.deriveTeams?.();
     const b=base()?.preflight?.()||{ok:false,issues:['No está disponible el generador anual base.'],warnings:[],rows:[],teams:[],outside:[]};
     const issues=[...(b.issues||[])],warnings=[...(b.warnings||[])],loads=teacherFrontLoads(b.rows||[]);
     for(const [tid,l] of Object.entries(loads)){
@@ -126,7 +126,7 @@
     }
     const built=buildPairs(b);
     if(built.crossRank.length)warnings.push(`${built.crossRank.length} emparejamiento${built.crossRank.length===1?'':'s'} cruzan pares temporales de Fase 1; conviene revisar la estructura curricular.`);
-    return{...b,issues,warnings,ok:!issues.length,v81Pairs:built.pairs,v81CrossRank:built.crossRank,sourceSignature:sourceSignature()};
+    return{...b,issues,warnings,ok:!issues.length,v81Pairs:built.pairs,v81CrossRank:built.crossRank,sourceSignature:sourceSignature(b.rows||[])};
   }
 
   function teamChoices(team,ctx){
@@ -256,34 +256,111 @@
     return{best,bestPartial,bestContinuity};
   }
 
-  function generate(){
-    const report=preflight();lastCheck=report;
-    if(!report.ok){decorate();toast('Hay condiciones pendientes antes de generar el horario anual.',true);return null}
-    const solved=solve(report);
-    if(!solved.best){
-      const c=solved.bestContinuity?.continuity;
-      lastCheck={...report,ok:false,issues:[...(report.issues||[]),c?`La mejor combinación dejó ${c.total} diferencias entre las posiciones del 1.er y 2.º cuatrimestre.`:`La mejor tentativa ubicó ${solved.bestPartial?.entries.length||0} posiciones, pero no logró completar la grilla.`]};
-      decorate();toast('No se encontró una grilla anual estrictamente estable con las restricciones actuales.',true);return null;
+  function yieldToUi(){return new Promise(resolve=>setTimeout(resolve,0))}
+
+  async function solveAsync(report,maxAttempts=1400,onProgress=null){
+    let best=null,bestPartial=null,bestContinuity=null;
+    const chunkSize=20;
+    for(let i=0;i<maxAttempts;i++){
+      const r=attempt(report);
+      if(r.ok){
+        if(!best||r.quality<best.quality)best=r;
+        if(r.quality<.5){
+          onProgress?.({attempt:i+1,maxAttempts,bestQuality:best.quality});
+          break;
+        }
+      }else{
+        const placed=r.entries.length,delta=r.continuity?.total??999999;
+        if(!bestPartial||placed>bestPartial.entries.length||placed===bestPartial.entries.length&&delta<(bestPartial.continuity?.total??999999))bestPartial=r;
+        if(r.continuity&&(!bestContinuity||r.continuity.total<bestContinuity.continuity.total))bestContinuity=r;
+      }
+      if((i+1)%chunkSize===0){
+        onProgress?.({attempt:i+1,maxAttempts,bestQuality:best?.quality??null});
+        await yieldToUi();
+      }
     }
-    const schedule={
-      id:`annual-v81-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
-      engine:'v81-annual-stable',
-      generator:'strict-annual-continuity',
-      createdAt:new Date().toISOString(),
-      status:'draft',
-      grid:grid()?.snapshot?.(),
-      entries:solved.best.entries,
-      quality:solved.best.quality,
-      continuity:'teacher-slots-identical',
-      sourceSignature:report.sourceSignature,
-      diagnostics:{positions:solved.best.entries.length,crossRank:report.v81CrossRank?.length||0}
-    };
-    root().annualScheduleVersions.push(schedule);
-    if(root().annualScheduleVersions.length>12)root().annualScheduleVersions.splice(0,root().annualScheduleVersions.length-12);
-    save();lastCheck={...report,generated:schedule};
-    base()?.render?.();setTimeout(decorate,80);
-    toast('Borrador anual V81 generado. Revisalo por curso y por docente antes de marcarlo vigente.');
-    return schedule;
+    return{best,bestPartial,bestContinuity};
+  }
+
+  function setBusyUi(){
+    const section=$('v65AnnualScheduler');if(!section)return;
+    const gen=section.querySelector('[data-v65-generate]');
+    const check=section.querySelector('[data-v65-check]');
+    const accept=section.querySelector('[data-v65-accept]');
+    if(check){
+      setDisabled(check,solving||analyzing);
+      setText(check,analyzing?'Analizando…':'Analizar viabilidad');
+    }
+    if(gen){
+      setDisabled(gen,solving||analyzing);
+      setText(gen,solving
+        ?(generationProgress?.phase==='solve'
+          ?`Generando… ${Math.min(100,Math.round((generationProgress.attempt||0)/(generationProgress.maxAttempts||1400)*100))}%`
+          :'Preparando horario…')
+        :'Generar borrador automático');
+    }
+    if(accept)setDisabled(accept,solving||analyzing);
+  }
+
+  async function analyze(){
+    if(solving||analyzing)return null;
+    analyzing=true;setBusyUi();
+    await yieldToUi();
+    try{
+      lastCheck=preflight();
+      decorate();
+      return lastCheck;
+    }finally{
+      analyzing=false;
+      setBusyUi();
+    }
+  }
+
+  async function generate(){
+    if(solving||analyzing)return null;
+    solving=true;
+    generationProgress={phase:'preflight',attempt:0,maxAttempts:1400};
+    setBusyUi();
+    await yieldToUi();
+    try{
+      const report=preflight();lastCheck=report;
+      if(!report.ok){
+        decorate();toast('Hay condiciones pendientes antes de generar el horario anual.',true);return null;
+      }
+      generationProgress={phase:'solve',attempt:0,maxAttempts:1400};
+      setBusyUi();
+      const solved=await solveAsync(report,1400,p=>{
+        generationProgress={phase:'solve',...p};
+        setBusyUi();
+      });
+      if(!solved.best){
+        const continuityReport=solved.bestContinuity?.continuity;
+        lastCheck={...report,ok:false,issues:[...(report.issues||[]),continuityReport?`La mejor combinación dejó ${continuityReport.total} diferencias entre las posiciones del 1.er y 2.º cuatrimestre.`:`La mejor tentativa ubicó ${solved.bestPartial?.entries.length||0} posiciones, pero no logró completar la grilla.`]};
+        decorate();toast('No se encontró una grilla anual estrictamente estable con las restricciones actuales.',true);return null;
+      }
+      const schedule={
+        id:`annual-v81-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+        engine:'v81-annual-stable',
+        generator:'strict-annual-continuity',
+        createdAt:new Date().toISOString(),
+        status:'draft',
+        grid:grid()?.snapshot?.(),
+        entries:solved.best.entries,
+        quality:solved.best.quality,
+        continuity:'teacher-slots-identical',
+        sourceSignature:report.sourceSignature,
+        diagnostics:{positions:solved.best.entries.length,crossRank:report.v81CrossRank?.length||0}
+      };
+      root().annualScheduleVersions.push(schedule);
+      if(root().annualScheduleVersions.length>12)root().annualScheduleVersions.splice(0,root().annualScheduleVersions.length-12);
+      save();lastCheck={...report,generated:schedule};
+      base()?.render?.();setTimeout(decorate,80);
+      toast('Borrador anual V81 generado. Revisalo por curso y por docente antes de marcarlo vigente.');
+      return schedule;
+    }finally{
+      solving=false;generationProgress=null;
+      setTimeout(()=>{decorate();setBusyUi()},0);
+    }
   }
 
   function isStale(schedule=active()){
@@ -299,7 +376,10 @@
 
   function status(){
     const a=active(),l=latest();
-    if(a)return{state:isStale(a)?'stale':'active',label:isStale(a)?'Vigente desactualizado':'Horario vigente',active:a,latest:l};
+    if(a){
+      const stale=isStale(a);
+      return{state:stale?'stale':'active',label:stale?'Vigente desactualizado':'Horario vigente',active:a,latest:l};
+    }
     if(l)return{state:'draft',label:'Borrador generado',active:null,latest:l};
     return{state:'empty',label:'Pendiente de generar',active:null,latest:null};
   }
@@ -317,9 +397,9 @@
     const p=section.querySelector('h2 + p');
     const copy='Genera una única grilla para toda la escuela respetando jornada, docentes, disponibilidad, preferencias, reuniones de equipo y trabajo institucional. El horario personal de cada docente conserva exactamente las mismas posiciones en ambos cuatrimestres.';
     if(p&&p.textContent!==copy)p.textContent=copy;
-    const gen=section.querySelector('[data-v65-generate]');if(gen)gen.textContent='Generar borrador automático';
-    const check=section.querySelector('[data-v65-check]');if(check)check.textContent='Analizar viabilidad';
-    const accept=section.querySelector('[data-v65-accept]');if(accept)accept.textContent='Marcar como vigente';
+    const gen=section.querySelector('[data-v65-generate]');if(gen&&!solving)setText(gen,'Generar borrador automático');
+    const check=section.querySelector('[data-v65-check]');if(check&&!analyzing)setText(check,'Analizar viabilidad');
+    const accept=section.querySelector('[data-v65-accept]');if(accept)setText(accept,'Marcar como vigente');
     const actions=section.querySelector('.v65-actions');
     let report=$('v81ScheduleCheck');
     if(lastCheck){
@@ -332,10 +412,11 @@
     const html=`<div><strong>${st.label}</strong><span>${st.state==='active'?'La versión vigente coincide con los datos actuales de Gestión.':st.state==='stale'?'Cambió al menos una fuente del horario. Conservamos la versión vigente, pero debe regenerarse antes de presentarla como actual.':st.state==='draft'?'Hay un borrador para revisar antes de activarlo.':'Todavía no se generó una versión anual.'}</span></div>${a?`<small>Vigente: ${new Date(a.createdAt).toLocaleString('es-AR')} · ${a.entries?.length||0} posiciones</small>`:l?`<small>Último borrador: ${new Date(l.createdAt).toLocaleString('es-AR')} · ${l.entries?.length||0} posiciones</small>`:''}`;
     if(!box){box=document.createElement('div');box.id='v81ScheduleStatus';box.className='v81-status';section.querySelector('.v65-actions')?.before(box)}
     box.className=`v81-status ${st.state}`;if(box.innerHTML!==html)box.innerHTML=html;
+    setBusyUi();
   }
 
   function intercept(e){
-    if(e.target.closest('[data-v65-check]')){e.preventDefault();e.stopImmediatePropagation();lastCheck=preflight();decorate();return}
+    if(e.target.closest('[data-v65-check]')){e.preventDefault();e.stopImmediatePropagation();analyze();return}
     if(e.target.closest('[data-v65-generate]')){e.preventDefault();e.stopImmediatePropagation();generate();return}
     if(e.target.closest('[data-v65-accept]')){e.preventDefault();e.stopImmediatePropagation();acceptLatest();return}
   }
@@ -365,5 +446,5 @@
   `;
   document.head.appendChild(style);
 
-  window.PCIScheduleStableV81={preflight,buildPairs,teacherFrontLoads,continuity,solve,generate,latest,active,sourceSignature,isStale,acceptLatest,status,decorate};
+  window.PCIScheduleStableV81={preflight,buildPairs,teacherFrontLoads,continuity,solve,solveAsync,generate,analyze,latest,active,sourceSignature,isStale,acceptLatest,status,decorate,getBusyState:()=>({solving,analyzing,generationProgress})};
 })();
