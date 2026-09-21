@@ -93,6 +93,28 @@
     return [...ids].map(id=>teachers[id]).filter(Boolean);
   }
 
+  function normalizeCriteriaModel(e){
+    e.rows=e.rows||{};
+    let criteria=Array.isArray(e.criteria)?e.criteria.map(x=>String(x??'')):['','','',''];
+    while(criteria.length<4)criteria.push('');
+
+    // Migración del modelo anterior: siempre reservaba un quinto criterio vacío.
+    // Si ya tenía contenido, se conserva; si estaba vacío, vuelve al mínimo real de cuatro.
+    if(Number(e.criteriaDynamicVersion||0)<2){
+      if(criteria.length===5&&!String(criteria[4]||'').trim())criteria=criteria.slice(0,4);
+      e.criteriaDynamicVersion=2;
+    }
+
+    e.criteria=criteria;
+    for(const row of Object.values(e.rows)){
+      if(!row||typeof row!=='object')continue;
+      row.criteria=Array.isArray(row.criteria)?row.criteria.slice():[];
+      while(row.criteria.length<e.criteria.length)row.criteria.push('');
+      if(row.criteria.length>e.criteria.length)row.criteria=row.criteria.slice(0,e.criteria.length);
+    }
+    return e;
+  }
+
   function ensureEval(ctx){
     const plans=root().grading.plans;
     let e=plans[ctx.key];
@@ -108,25 +130,49 @@
         course:ctx.commission.course,
         planNumber:ctx.planNumber,
         planName:planName(ctx),
-        criteria:['','','','',''],
+        criteria:['','','',''],
+        criteriaDynamicVersion:2,
         rows:{}
       };
     }
     e.planName=planName(ctx)||e.planName||'';
-    e.criteria=Array.isArray(e.criteria)?e.criteria.slice(0,5):['','','','',''];
-    while(e.criteria.length<5)e.criteria.push('');
-    e.rows=e.rows||{};
-    return e;
+    return normalizeCriteriaModel(e);
   }
 
   function criteriaReady(e){return e.criteria.slice(0,4).every(x=>String(x||'').trim())}
 
+  function addCriterion(e){
+    normalizeCriteriaModel(e);
+    e.criteria.push('');
+    for(const row of Object.values(e.rows||{})){
+      if(!row||typeof row!=='object')continue;
+      row.criteria=Array.isArray(row.criteria)?row.criteria:[];
+      row.criteria.push('');
+    }
+    return e.criteria.length;
+  }
+
+  function removeCriterion(e,index){
+    normalizeCriteriaModel(e);
+    const i=Number(index);
+    if(!Number.isInteger(i)||i<4||i>=e.criteria.length)return false;
+    e.criteria.splice(i,1);
+    for(const row of Object.values(e.rows||{})){
+      if(!row||typeof row!=='object'||!Array.isArray(row.criteria))continue;
+      row.criteria.splice(i,1);
+    }
+    return true;
+  }
+
   function rowFor(e,s){
-    if(!e.rows[s.dni])e.rows[s.dni]={dni:s.dni,status:'no_iniciado',stage:'',criteria:['','','','',''],final:'',completedAt:'',weight:'',weighted:''};
+    normalizeCriteriaModel(e);
+    if(!e.rows[s.dni])e.rows[s.dni]={dni:s.dni,status:'no_iniciado',stage:'',criteria:Array(e.criteria.length).fill(''),final:'',completedAt:'',weight:'',weighted:''};
     const r=e.rows[s.dni];
     r.status=r.status||((r.final||r.stage)?'en_proceso':'no_iniciado');
     r.completedAt=String(r.completedAt||'');
-    r.criteria=Array.isArray(r.criteria)?r.criteria.slice(0,5):['','','','',''];while(r.criteria.length<5)r.criteria.push('');
+    r.criteria=Array.isArray(r.criteria)?r.criteria.slice():[];
+    while(r.criteria.length<e.criteria.length)r.criteria.push('');
+    if(r.criteria.length>e.criteria.length)r.criteria=r.criteria.slice(0,e.criteria.length);
     return r;
   }
 
