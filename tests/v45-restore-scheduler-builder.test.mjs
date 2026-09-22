@@ -47,3 +47,15 @@ test('r45 no reintroduce la interfaz visual de ofrecimiento docente',async()=>{
     assert.doesNotMatch(source,/Carga y ofrecimiento docente|Oferta mínima y porcentaje variable|Usar mínimo/);
   }
 });
+
+
+test('r45 publica una versión de caché propia y sincronizada',async()=>{
+  const [loader,index]=await Promise.all([
+    readFile(new URL('../app-safe.html',import.meta.url),'utf8'),
+    readFile(new URL('../index.html',import.meta.url),'utf8')
+  ]);
+  const loaderVersion=loader.match(/app\.html\?v=([^'"]+)/)?.[1]||'';
+  const indexVersion=index.match(/app-safe\.html\?v=([^'"]+)/)?.[1]||'';
+  assert.equal(loaderVersion,'20260921-restore-scheduler-builder-r45');
+  assert.equal(indexVersion,loaderVersion);
+});
