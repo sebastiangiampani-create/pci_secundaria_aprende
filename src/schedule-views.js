@@ -46,7 +46,7 @@
     const host=$('v48InstitutionalContent');if(!host||!$('institutional')?.classList.contains('active'))return;
     if(document.body.classList.contains('v73-management-home-active'))return;
     const sched=$('v65AnnualScheduler')||$('v68AnnualScheduler')||$('v53Scheduler')||[...host.querySelectorAll('section')].find(x=>/horario/i.test(x.querySelector('h2')?.textContent||''));
-    if(!sched)return;
+    if(!sched||sched.classList.contains('v73-hidden'))return;
     let box=$('scheduleViews');if(!box){box=document.createElement('section');box.id='scheduleViews';box.className='card sv-section';sched.after(box)}
     const s=currentSchedule();
     if(!s){box.innerHTML='<div class="eyebrow">Horarios</div><h2>Vistas del horario</h2><div class="sv-note">Generá primero el horario anual.</div>';return}
