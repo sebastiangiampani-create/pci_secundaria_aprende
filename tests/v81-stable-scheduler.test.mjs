@@ -94,3 +94,17 @@ test('un horario vigente queda desactualizado si cambia Gestión',async()=>{
   assert.equal(api.isStale(),true);
   assert.equal(api.status().state,'stale');
 });
+
+
+test('smoke V81 genera una grilla anual estable en un caso mínimo',async()=>{
+  const rows=[
+    {instanceId:'i1',teacherId:'t1',teacherName:'Ada',orientation:'Eco',course:'1.º A',subjectId:'m1',name:'Matemática',hours:1,locations:['C1','C2'],semesters:[1,2]}
+  ];
+  const {api}=await harness(rows);
+  const report=api.preflight();
+  assert.equal(report.ok,true);
+  const solved=api.solve(report,20);
+  assert.ok(solved.best,'V81 debe encontrar al menos una solución completa');
+  assert.equal(api.continuity(solved.best.entries).ok,true);
+  assert.ok(solved.best.entries.length>0);
+});
