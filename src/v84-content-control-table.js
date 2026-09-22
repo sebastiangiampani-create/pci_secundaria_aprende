@@ -3,6 +3,7 @@
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  function appState(){try{return typeof state!=='undefined'?state:(window.state||{})}catch{return window.state||{}}}
   const FG_FILES=['db1.txt','db2.txt','db3.txt','db4.txt','rest1.txt','rest2.txt','rest3.txt','rest4.txt','rest5.txt'].map(x=>`data/formacion_general/${x}?v=${CONTROL_VERSION}`);
   const ORI={
     'Ciencias Naturales':{f:'ciencias_naturales'},
@@ -44,7 +45,7 @@
   }
 
   async function loadFO(){
-    const orientation=String(window.state?.active||'');
+    const orientation=String(appState().active||'');
     const meta=ORI[orientation]||{};
     const key=`${meta.f||''}:${meta.v||''}`;
     if(foCache.has(key))return foCache.get(key);
@@ -86,7 +87,7 @@
     const scope=api()?.getAccessScope?.()||{role:'admin',allowedAreasByOrientation:{}};
     if(scope.role==='admin')return true;
     if(scope.role!=='teacher')return false;
-    const allowed=new Set(scope.allowedAreasByOrientation?.[window.state?.active]||[]);
+    const allowed=new Set(scope.allowedAreasByOrientation?.[appState().active]||[]);
     return allowed.has(area)||groupsForContent.some(g=>allowed.has(g.area));
   }
 
@@ -285,7 +286,7 @@
     const blob=new Blob(['\ufeff'+lines],{type:'text/csv;charset=utf-8'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download=`ubicacion-contenidos-${String(window.state?.active||'pci').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.csv`;
+    a.download=`ubicacion-contenidos-${String(appState().active||'pci').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.csv`;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   }
 
@@ -293,7 +294,7 @@
     const rows=filteredRows(),s=stats(rows),w=window.open('','_blank');
     if(!w){alert('Habilitá ventanas emergentes para imprimir la tabla de control.');return}
     const body=rows.map(row=>`<tr><td>${esc(statusOf(row)==='pending'?'Pendiente':statusOf(row)==='multiple'?'Múltiple':'Ubicado')}</td><td>${esc(row.area)}</td><td>${esc(row.subject||'')}</td><td>${esc(row.axis||'')}</td><td>${esc(row.text||'')}</td><td>${esc(row.locations.map(x=>x.name).join(' | ')||'Sin asignar')}</td><td>${esc([...new Set(row.locations.map(x=>x.term))].join(' · ')||'—')}</td></tr>`).join('');
-    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Tabla de control de contenidos</title><style>body{font-family:Arial,sans-serif;color:#12395c;margin:24px}h1{margin-bottom:4px}.meta{margin-bottom:18px;color:#5f7382}.stats{display:flex;gap:16px;margin:14px 0;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cfd9e0;padding:6px;vertical-align:top}th{background:#edf3f8;text-align:left}@media print{body{margin:8mm}}</style></head><body><h1>Tabla de control de contenidos</h1><div class="meta">${esc(window.state?.school||'')} · ${esc(window.state?.active||'')}</div><div class="stats"><span>${s.assigned} ubicados</span><span>${s.pending} pendientes</span><span>${s.total} totales</span></div><table><thead><tr><th>Estado</th><th>Área</th><th>Materia</th><th>Eje/Bloque</th><th>Contenido priorizado</th><th>Ubicado en</th><th>C1–C10</th></tr></thead><tbody>${body}</tbody></table></body></html>`);
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Tabla de control de contenidos</title><style>body{font-family:Arial,sans-serif;color:#12395c;margin:24px}h1{margin-bottom:4px}.meta{margin-bottom:18px;color:#5f7382}.stats{display:flex;gap:16px;margin:14px 0;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cfd9e0;padding:6px;vertical-align:top}th{background:#edf3f8;text-align:left}@media print{body{margin:8mm}}</style></head><body><h1>Tabla de control de contenidos</h1><div class="meta">${esc(appState().school||'')} · ${esc(appState().active||'')}</div><div class="stats"><span>${s.assigned} ubicados</span><span>${s.pending} pendientes</span><span>${s.total} totales</span></div><table><thead><tr><th>Estado</th><th>Área</th><th>Materia</th><th>Eje/Bloque</th><th>Contenido priorizado</th><th>Ubicado en</th><th>C1–C10</th></tr></thead><tbody>${body}</tbody></table></body></html>`);
     w.document.close();w.focus();setTimeout(()=>w.print(),250);
   }
 
