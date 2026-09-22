@@ -44,11 +44,12 @@
   }
   function render(){
     const host=$('v48InstitutionalContent');if(!host||!$('institutional')?.classList.contains('active'))return;
-    const sched=$('v68AnnualScheduler')||$('v53Scheduler')||[...host.querySelectorAll('section')].find(x=>/horario/i.test(x.querySelector('h2')?.textContent||''));
+    if(document.body.classList.contains('v73-management-home-active'))return;
+    const sched=$('v65AnnualScheduler')||$('v68AnnualScheduler')||$('v53Scheduler')||[...host.querySelectorAll('section')].find(x=>/horario/i.test(x.querySelector('h2')?.textContent||''));
     if(!sched)return;
     let box=$('scheduleViews');if(!box){box=document.createElement('section');box.id='scheduleViews';box.className='card sv-section';sched.after(box)}
     const s=currentSchedule();
-    if(!s){box.innerHTML='<div class="eyebrow">Horarios</div><h2>Vistas del horario</h2><div class="sv-note">Generá primero el horario del cuatrimestre.</div>';return}
+    if(!s){box.innerHTML='<div class="eyebrow">Horarios</div><h2>Vistas del horario</h2><div class="sv-note">Generá primero el horario anual.</div>';return}
     const ts=teachers();if(!teacher||!root().teachers?.[teacher])teacher=ts[0]?.id||'';
     box.innerHTML=`<div class="eyebrow">Horarios del ${sem()===1?'1.er':'2.º'} cuatrimestre</div><h2>Vistas del horario</h2><div class="sv-tabs"><button data-sv="year" class="${mode==='year'?'active':''}">Por año</button><button data-sv="teacher" class="${mode==='teacher'?'active':''}">Por docente</button><button data-sv="teams" class="${mode==='teams'?'active':''}">Reuniones de equipo</button></div><div class="sv-controls">${mode==='year'?`<label>Año<select id="svYear">${[1,2,3,4,5].map(n=>`<option value="${n}" ${year==n?'selected':''}>${n}.º año</option>`).join('')}</select></label>`:''}${mode==='teacher'?`<label>Docente<select id="svTeacher">${ts.map(t=>`<option value="${esc(t.id)}" ${teacher===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label>`:''}</div><div class="sv-content">${mode==='year'?yearView():mode==='teacher'?teacherView():meetingsView()}</div>`;
     box.querySelectorAll('[data-sv]').forEach(b=>b.onclick=()=>{mode=b.dataset.sv;render()});
