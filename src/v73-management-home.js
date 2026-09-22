@@ -143,6 +143,12 @@
     prepareModule(key);
     setTimeout(()=>{
       applyView();
+      if(key==='horarios'){
+        window.PCIAnnualSchedulerV65?.render?.();
+        window.PCIScheduleStableV81?.decorate?.();
+        window.PCIScheduleViews?.render?.();
+        applyView();
+      }
       requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'smooth'}));
     },90);
   }
