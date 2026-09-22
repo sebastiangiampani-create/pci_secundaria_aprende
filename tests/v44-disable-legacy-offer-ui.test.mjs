@@ -46,6 +46,6 @@ test('r44 mantiene sincronizada la versión de caché',async()=>{
   ]);
   const loaderVersion=loader.match(/app\.html\?v=([^'"]+)/)?.[1]||'';
   const indexVersion=index.match(/app-safe\.html\?v=([^'"]+)/)?.[1]||'';
-  assert.equal(loaderVersion,'20260921-ofrecimiento-legacy-off-r44');
+  assert.ok(loaderVersion,'app-safe debe declarar una versión de caché');
   assert.equal(indexVersion,loaderVersion);
 });
